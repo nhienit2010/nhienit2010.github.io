@@ -12,20 +12,20 @@
     <generator>Hugo -- 0.152.2</generator>
     <language>en</language>
     <copyright>©nhienit</copyright>
-    <lastBuildDate>Mon, 10 Nov 2025 21:05:44 +0700</lastBuildDate>
+    <lastBuildDate>Mon, 10 Nov 2025 00:00:00 +0000</lastBuildDate>
     <atom:link href="https://nhienit2010.github.io/series/index.xml" rel="self" type="application/rss+xml" />
-    <item>
-      <title>Research</title>
-      <link>https://nhienit2010.github.io/series/research/</link>
-      <pubDate>Mon, 10 Nov 2025 21:05:44 +0700</pubDate>
-      <guid>https://nhienit2010.github.io/series/research/</guid>
-      <description></description>
-    </item>
     <item>
       <title>Hello</title>
       <link>https://nhienit2010.github.io/series/hello/</link>
       <pubDate>Mon, 10 Nov 2025 00:00:00 +0000</pubDate>
       <guid>https://nhienit2010.github.io/series/hello/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Research</title>
+      <link>https://nhienit2010.github.io/series/research/</link>
+      <pubDate>Wed, 02 Oct 2024 21:05:44 +0700</pubDate>
+      <guid>https://nhienit2010.github.io/series/research/</guid>
       <description></description>
     </item>
   </channel>

@@ -77,8 +77,8 @@
   <meta property="og:locale" content="en">
   <meta property="og:type" content="article">
     <meta property="article:section" content="posts">
-    <meta property="article:published_time" content="2025-11-10T21:05:44+07:00">
-    <meta property="article:modified_time" content="2025-11-10T21:05:44+07:00">
+    <meta property="article:published_time" content="2024-10-02T21:05:44+07:00">
+    <meta property="article:modified_time" content="2024-10-02T21:05:44+07:00">
     <meta property="article:tag" content="Research">
       <meta property="og:image" content="https://nhienit2010.github.io/images/papermod-cover.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -120,8 +120,8 @@
   "articleBody": "Chuyện lâu rồi giờ mới kể là dạo gần đây mình có dịp được nghiên cứu về các sản phẩm open-source và target lần này mình chọn đó là ManageEngine Adaudit Plus, một sản phẩm của Zoho.\nTrước đó product này cũng có nhiều CVE nghiêm trọng rồi nhưng may mắn thay là lần này sau một thời gian audit mã nguồn thì mình vẫn tìm được một số lỗ hổng nghiêm trọng khác đang còn tồn đọng trên ứng dụng này, nên mình viết bài này để chia sẻ một số thứ về chúng và cũng mong muốn rằng đây có thể là một phần tài liệu cho những ai sắp hoặc đang có ý định nghiên cứu về những products của ZOHO.\nManageEngine ADAudit Plus là một giải pháp giám sát và báo cáo hoạt động Active Directory toàn diện, cung cấp bởi ManageEngine. Đây là một công cụ quan trọng cho việc đảm bảo tuân thủ quy định, bảo mật dữ liệu và quản lý hiệu suất hệ thống ( theo Chat-GPT =]]] ).\n#Effected version Zoho ManageEngine Adaudit Plus 7.2.0 Build 7250\n#Remote debug Để thực hiện việc remote debug thì điều tiên ta cần extract hết các libs có trong thư mục cài đặt:\nfind . -type f -iname *.jar -exec cp {} adap_jars/ \\; Theo cá nhân mình để remote debug thì chỉ cần sửa lại file /bin/run.bat từ if \"%1\" == \"debug\" thành if \"debug\" == \"debug\" là được =))))\n#Route handling Trước khi phân tích sâu vào lỗ hổng thì mình sẽ nói sơ qua một chút về URL Mapping trên các ứng dụng ManageEngine.\nNhư bao các ứng dụng Java Web khác, các url pattern và các filters đều được định nghĩa ở các file .xml. Ví dụ như web.xml file, có thể cho ta biết được một endpoint sẽ được handle bởi một class tương ứng nào đó hoặc phải đi qua những filter chain nào, …\nVí dụ như file /webapps/adap/WEB-INF/web.xml định nghĩa như sau:\n… ADSMServerStatusServlet com.adventnet.sym.adsm.servlet.ADSMServerStatusServlet … ADSMServerStatusServlet /servlet/ADSMServerStatus … Điều này được hiểu đơn giản rằng /servlet/ADSMServerStatus endpoint được handle bởi class com.adventnet.sym.adsm.servlet.ADSMServerStatusServlet.\nNgoài ra, một điều không kém phần quan trọng nữa rằng ở file /webapps/adap/WEB-INF/security/security.xml cho ta biết được rằng request đến một api endpoint sẽ cần những tham số nào, gọi bằng http method nào, có cần csrf token hay không, …\n… ",
   "wordCount" : "3121",
   "inLanguage": "en",
-  "image": "https://nhienit2010.github.io/images/papermod-cover.png","datePublished": "2025-11-10T21:05:44+07:00",
-  "dateModified": "2025-11-10T21:05:44+07:00",
+  "image": "https://nhienit2010.github.io/images/papermod-cover.png","datePublished": "2024-10-02T21:05:44+07:00",
+  "dateModified": "2024-10-02T21:05:44+07:00",
   "author":[{
     "@type": "Person",
     "name": "nhienit"
@@ -194,7 +194,7 @@
     <div class="post-description">
       Analysis about Manage Engine ADAudit Plus CVE
     </div>
-    <div class="post-meta"><span title='2025-11-10 21:05:44 +0700 +07'>November 10, 2025</span>&nbsp;·&nbsp;<span>15 min</span>&nbsp;·&nbsp;<span>nhienit</span>&nbsp;|&nbsp;<span>
+    <div class="post-meta"><span title='2024-10-02 21:05:44 +0700 +07'>October 2, 2024</span>&nbsp;·&nbsp;<span>15 min</span>&nbsp;·&nbsp;<span>nhienit</span>&nbsp;|&nbsp;<span>
     <a href="https://github.com/adityatelange/hugo-PaperMod/tree/exampleSite/content/posts/me_sqli_to_rce.md" rel="noopener noreferrer edit" target="_blank">Suggest Changes</a>
 </span>
 
@@ -580,8 +580,8 @@ Content-Disposition: form-data; name=&#34;adapcsrf&#34;
       <li><a href="https://nhienit2010.github.io/tags/research/">Research</a></li>
     </ul>
 <nav class="paginav">
-  <a class="next" href="https://nhienit2010.github.io/posts/hello/">
-    <span class="title">Next »</span>
+  <a class="prev" href="https://nhienit2010.github.io/posts/hello/">
+    <span class="title">« Prev</span>
     <br>
     <span>Hello World</span>
   </a>
