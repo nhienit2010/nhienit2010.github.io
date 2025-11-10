@@ -2,30 +2,30 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>Categories on nhienit</title>
-    <link>https://nhienit2010.github.io/categories/</link>
+    <link>https://example.com/categories/</link>
     <description>Recent content in Categories on nhienit</description>
     <image>
       <title>nhienit</title>
-      <url>https://nhienit2010.github.io/images/papermod-cover.png</url>
-      <link>https://nhienit2010.github.io/images/papermod-cover.png</link>
+      <url>https://example.com/images/papermod-cover.png</url>
+      <link>https://example.com/images/papermod-cover.png</link>
     </image>
     <generator>Hugo -- 0.152.2</generator>
     <language>en</language>
     <copyright>©nhienit</copyright>
     <lastBuildDate>Mon, 10 Nov 2025 21:05:44 +0700</lastBuildDate>
-    <atom:link href="https://nhienit2010.github.io/categories/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="https://example.com/categories/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Research</title>
-      <link>https://nhienit2010.github.io/categories/research/</link>
+      <link>https://example.com/categories/research/</link>
       <pubDate>Mon, 10 Nov 2025 21:05:44 +0700</pubDate>
-      <guid>https://nhienit2010.github.io/categories/research/</guid>
+      <guid>https://example.com/categories/research/</guid>
       <description></description>
     </item>
     <item>
       <title>Other</title>
-      <link>https://nhienit2010.github.io/categories/other/</link>
+      <link>https://example.com/categories/other/</link>
       <pubDate>Mon, 10 Nov 2025 00:00:00 +0000</pubDate>
-      <guid>https://nhienit2010.github.io/categories/other/</guid>
+      <guid>https://example.com/categories/other/</guid>
       <description></description>
     </item>
   </channel>
