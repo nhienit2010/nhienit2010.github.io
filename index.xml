@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>nhienit</title>
+    <link>http://localhost:1313/</link>
+    <description>Recent content on nhienit</description>
+    <image>
+      <title>nhienit</title>
+      <url>http://localhost:1313/images/papermod-cover.png</url>
+      <link>http://localhost:1313/images/papermod-cover.png</link>
+    </image>
+    <generator>Hugo -- 0.152.2</generator>
+    <language>en</language>
+    <copyright>©nhienit</copyright>
+    <lastBuildDate>Mon, 10 Nov 2025 21:05:44 +0700</lastBuildDate>
+    <atom:link href="http://localhost:1313/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>ManageEngine Adaudit Plus – From SQLi to RCE</title>
+      <link>http://localhost:1313/posts/me_sqli_to_rce/</link>
+      <pubDate>Mon, 10 Nov 2025 21:05:44 +0700</pubDate>
+      <guid>http://localhost:1313/posts/me_sqli_to_rce/</guid>
+      <description>Analysis about Manage Engine ADAudit Plus CVE</description>
+    </item>
+    <item>
+      <title>Hello World</title>
+      <link>http://localhost:1313/posts/hello/</link>
+      <pubDate>Mon, 10 Nov 2025 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/posts/hello/</guid>
+      <description>Welcome to the new house</description>
+    </item>
+  </channel>
+</rss>

