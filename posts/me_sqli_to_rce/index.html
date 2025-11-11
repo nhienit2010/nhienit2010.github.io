@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" dir="auto" data-theme="auto">
 
-<head><meta charset="utf-8">
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <meta name="robots" content="index, follow">
@@ -9,16 +9,16 @@
 <meta name="keywords" content="research">
 <meta name="description" content="Analysis about Manage Engine ADAudit Plus CVE">
 <meta name="author" content="nhienit">
-<link rel="canonical" href="https://nhienit2010.github.io/posts/me_sqli_to_rce/">
+<link rel="canonical" href="http://localhost:1313/posts/me_sqli_to_rce/">
 <link crossorigin="anonymous" href="/assets/css/stylesheet.343cc480b9ffc8f04ccbe5e968ad674880cab773ec19905e93033065c1e7a804.css" integrity="sha256-NDzEgLn/yPBMy&#43;XpaK1nSIDKt3PsGZBekwMwZcHnqAQ=" rel="preload stylesheet" as="style">
-<link rel="icon" href="https://nhienit2010.github.io/favicon.ico">
-<link rel="icon" type="image/png" sizes="16x16" href="https://nhienit2010.github.io/favicon-16x16.png">
-<link rel="icon" type="image/png" sizes="32x32" href="https://nhienit2010.github.io/favicon-32x32.png">
-<link rel="apple-touch-icon" href="https://nhienit2010.github.io/apple-touch-icon.png">
-<link rel="mask-icon" href="https://nhienit2010.github.io/safari-pinned-tab.svg">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
 <meta name="theme-color" content="#2e2e33">
 <meta name="msapplication-TileColor" content="#2e2e33">
-<link rel="alternate" hreflang="en" href="https://nhienit2010.github.io/posts/me_sqli_to_rce/">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/posts/me_sqli_to_rce/">
 <noscript>
     <style>
         #theme-toggle,
@@ -70,7 +70,7 @@
         document.querySelector("html").dataset.theme = 'light';
     }
 
-</script><meta property="og:url" content="https://nhienit2010.github.io/posts/me_sqli_to_rce/">
+</script><meta property="og:url" content="http://localhost:1313/posts/me_sqli_to_rce/">
   <meta property="og:site_name" content="nhienit">
   <meta property="og:title" content="ManageEngine Adaudit Plus – From SQLi to RCE">
   <meta property="og:description" content="Analysis about Manage Engine ADAudit Plus CVE">
@@ -80,9 +80,11 @@
     <meta property="article:published_time" content="2024-10-02T21:05:44+07:00">
     <meta property="article:modified_time" content="2024-10-02T21:05:44+07:00">
     <meta property="article:tag" content="Research">
-      <meta property="og:image" content="https://nhienit2010.github.io/images/papermod-cover.png">
+      <meta property="og:image" content="http://localhost:1313/images/papermod-cover.png">
+      <meta property="og:see_also" content="http://localhost:1313/posts/cve-2024-5443-path-traversal-to-rce/">
+      <meta property="og:see_also" content="http://localhost:1313/posts/cve-2022-3133-drawio-xss-to-rce/">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://nhienit2010.github.io/images/papermod-cover.png">
+<meta name="twitter:image" content="http://localhost:1313/images/papermod-cover.png">
 <meta name="twitter:title" content="ManageEngine Adaudit Plus – From SQLi to RCE">
 <meta name="twitter:description" content="Analysis about Manage Engine ADAudit Plus CVE">
 
@@ -96,13 +98,13 @@
       "@type": "ListItem",
       "position":  1 ,
       "name": "Posts",
-      "item": "https://nhienit2010.github.io/posts/"
+      "item": "http://localhost:1313/posts/"
     }, 
     {
       "@type": "ListItem",
       "position":  2 ,
       "name": "ManageEngine Adaudit Plus – From SQLi to RCE",
-      "item": "https://nhienit2010.github.io/posts/me_sqli_to_rce/"
+      "item": "http://localhost:1313/posts/me_sqli_to_rce/"
     }
   ]
 }
@@ -120,7 +122,7 @@
   "articleBody": "Chuyện lâu rồi giờ mới kể là dạo gần đây mình có dịp được nghiên cứu về các sản phẩm open-source và target lần này mình chọn đó là ManageEngine Adaudit Plus, một sản phẩm của Zoho.\nTrước đó product này cũng có nhiều CVE nghiêm trọng rồi nhưng may mắn thay là lần này sau một thời gian audit mã nguồn thì mình vẫn tìm được một số lỗ hổng nghiêm trọng khác đang còn tồn đọng trên ứng dụng này, nên mình viết bài này để chia sẻ một số thứ về chúng và cũng mong muốn rằng đây có thể là một phần tài liệu cho những ai sắp hoặc đang có ý định nghiên cứu về những products của ZOHO.\nManageEngine ADAudit Plus là một giải pháp giám sát và báo cáo hoạt động Active Directory toàn diện, cung cấp bởi ManageEngine. Đây là một công cụ quan trọng cho việc đảm bảo tuân thủ quy định, bảo mật dữ liệu và quản lý hiệu suất hệ thống ( theo Chat-GPT =]]] ).\n#Effected version Zoho ManageEngine Adaudit Plus 7.2.0 Build 7250\n#Remote debug Để thực hiện việc remote debug thì điều tiên ta cần extract hết các libs có trong thư mục cài đặt:\nfind . -type f -iname *.jar -exec cp {} adap_jars/ \\; Theo cá nhân mình để remote debug thì chỉ cần sửa lại file /bin/run.bat từ if \"%1\" == \"debug\" thành if \"debug\" == \"debug\" là được =))))\n#Route handling Trước khi phân tích sâu vào lỗ hổng thì mình sẽ nói sơ qua một chút về URL Mapping trên các ứng dụng ManageEngine.\nNhư bao các ứng dụng Java Web khác, các url pattern và các filters đều được định nghĩa ở các file .xml. Ví dụ như web.xml file, có thể cho ta biết được một endpoint sẽ được handle bởi một class tương ứng nào đó hoặc phải đi qua những filter chain nào, …\nVí dụ như file /webapps/adap/WEB-INF/web.xml định nghĩa như sau:\n… ADSMServerStatusServlet com.adventnet.sym.adsm.servlet.ADSMServerStatusServlet … ADSMServerStatusServlet /servlet/ADSMServerStatus … Điều này được hiểu đơn giản rằng /servlet/ADSMServerStatus endpoint được handle bởi class com.adventnet.sym.adsm.servlet.ADSMServerStatusServlet.\nNgoài ra, một điều không kém phần quan trọng nữa rằng ở file /webapps/adap/WEB-INF/security/security.xml cho ta biết được rằng request đến một api endpoint sẽ cần những tham số nào, gọi bằng http method nào, có cần csrf token hay không, …\n… ",
   "wordCount" : "3121",
   "inLanguage": "en",
-  "image": "https://nhienit2010.github.io/images/papermod-cover.png","datePublished": "2024-10-02T21:05:44+07:00",
+  "image": "http://localhost:1313/images/papermod-cover.png","datePublished": "2024-10-02T21:05:44+07:00",
   "dateModified": "2024-10-02T21:05:44+07:00",
   "author":[{
     "@type": "Person",
@@ -128,14 +130,14 @@
   }],
   "mainEntityOfPage": {
     "@type": "WebPage",
-    "@id": "https://nhienit2010.github.io/posts/me_sqli_to_rce/"
+    "@id": "http://localhost:1313/posts/me_sqli_to_rce/"
   },
   "publisher": {
     "@type": "Organization",
     "name": "nhienit",
     "logo": {
       "@type": "ImageObject",
-      "url": "https://nhienit2010.github.io/favicon.ico"
+      "url": "http://localhost:1313/favicon.ico"
     }
   }
 }
@@ -145,7 +147,7 @@
     <header class="header">
     <nav class="nav">
         <div class="logo">
-            <a href="https://nhienit2010.github.io/" accesskey="h" title="nhienit (Alt + H)">nhienit</a>
+            <a href="http://localhost:1313/" accesskey="h" title="nhienit (Alt + H)">nhienit</a>
             <div class="logo-switches">
                 <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
                     <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
@@ -171,12 +173,12 @@
         </div>
         <ul id="menu">
             <li>
-                <a href="https://nhienit2010.github.io/archives/" title="Archive">
+                <a href="http://localhost:1313/archives/" title="Archive">
                     <span>Archive</span>
                 </a>
             </li>
             <li>
-                <a href="https://nhienit2010.github.io/tags/" title="Tags">
+                <a href="http://localhost:1313/tags/" title="Tags">
                     <span>Tags</span>
                 </a>
             </li>
@@ -187,7 +189,7 @@
 
 <article class="post-single">
   <header class="post-header">
-    <div class="breadcrumbs"><a href="https://nhienit2010.github.io/">Home</a>&nbsp;»&nbsp;<a href="https://nhienit2010.github.io/posts/">Posts</a></div>
+    <div class="breadcrumbs"><a href="http://localhost:1313/">Home</a>&nbsp;»&nbsp;<a href="http://localhost:1313/posts/">Posts</a></div>
     <h1 class="post-title entry-hint-parent">
       ManageEngine Adaudit Plus – From SQLi to RCE
     </h1>
@@ -577,13 +579,13 @@ Content-Disposition: form-data; name=&#34;adapcsrf&#34;
 
   <footer class="post-footer">
     <ul class="post-tags">
-      <li><a href="https://nhienit2010.github.io/tags/research/">Research</a></li>
+      <li><a href="http://localhost:1313/tags/research/">Research</a></li>
     </ul>
 <nav class="paginav">
-  <a class="prev" href="https://nhienit2010.github.io/posts/hello/">
-    <span class="title">« Prev</span>
+  <a class="next" href="http://localhost:1313/posts/cve-2024-5443-path-traversal-to-rce/">
+    <span class="title">Next »</span>
     <br>
-    <span>Hello World</span>
+    <span>CVE-2024-5443: Path Traversal Leads to RCE in parisneo/lollms</span>
   </a>
 </nav>
 
