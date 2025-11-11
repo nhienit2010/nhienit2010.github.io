@@ -2,44 +2,44 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>nhienit</title>
-    <link>http://localhost:1313/</link>
+    <link>https://nhienit2010.github.io/</link>
     <description>Recent content on nhienit</description>
     <image>
       <title>nhienit</title>
-      <url>http://localhost:1313/images/papermod-cover.png</url>
-      <link>http://localhost:1313/images/papermod-cover.png</link>
+      <url>https://nhienit2010.github.io/images/papermod-cover.png</url>
+      <link>https://nhienit2010.github.io/images/papermod-cover.png</link>
     </image>
     <generator>Hugo -- 0.152.2</generator>
     <language>en</language>
     <copyright>©nhienit</copyright>
     <lastBuildDate>Wed, 02 Oct 2024 21:05:44 +0700</lastBuildDate>
-    <atom:link href="http://localhost:1313/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="https://nhienit2010.github.io/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>ManageEngine Adaudit Plus – From SQLi to RCE</title>
-      <link>http://localhost:1313/posts/me_sqli_to_rce/</link>
+      <link>https://nhienit2010.github.io/posts/me_sqli_to_rce/</link>
       <pubDate>Wed, 02 Oct 2024 21:05:44 +0700</pubDate>
-      <guid>http://localhost:1313/posts/me_sqli_to_rce/</guid>
+      <guid>https://nhienit2010.github.io/posts/me_sqli_to_rce/</guid>
       <description>Analysis about Manage Engine ADAudit Plus CVE</description>
     </item>
     <item>
       <title>CVE-2024-5443: Path Traversal Leads to RCE in parisneo/lollms</title>
-      <link>http://localhost:1313/posts/cve-2024-5443-path-traversal-to-rce/</link>
+      <link>https://nhienit2010.github.io/posts/cve-2024-5443-path-traversal-to-rce/</link>
       <pubDate>Thu, 08 Aug 2024 10:23:44 +0700</pubDate>
-      <guid>http://localhost:1313/posts/cve-2024-5443-path-traversal-to-rce/</guid>
+      <guid>https://nhienit2010.github.io/posts/cve-2024-5443-path-traversal-to-rce/</guid>
       <description>CVE-2024-5443 analysis</description>
     </item>
     <item>
       <title>[CVE-2022-3133] Draw.io – XSS leads to RCE</title>
-      <link>http://localhost:1313/posts/cve-2022-3133-drawio-xss-to-rce/</link>
+      <link>https://nhienit2010.github.io/posts/cve-2022-3133-drawio-xss-to-rce/</link>
       <pubDate>Mon, 26 Jun 2023 10:43:10 +0700</pubDate>
-      <guid>http://localhost:1313/posts/cve-2022-3133-drawio-xss-to-rce/</guid>
+      <guid>https://nhienit2010.github.io/posts/cve-2022-3133-drawio-xss-to-rce/</guid>
       <description>CVE-2022-3133 analysis</description>
     </item>
     <item>
       <title>Hello World</title>
-      <link>http://localhost:1313/posts/hello/</link>
+      <link>https://nhienit2010.github.io/posts/hello/</link>
       <pubDate>Tue, 10 Nov 2020 00:00:00 +0000</pubDate>
-      <guid>http://localhost:1313/posts/hello/</guid>
+      <guid>https://nhienit2010.github.io/posts/hello/</guid>
       <description>Welcome to the new house</description>
     </item>
   </channel>
