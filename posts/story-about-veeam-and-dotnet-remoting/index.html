@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto" data-theme="auto">
+
+<head><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>Câu chuyện về Veeam và .NET Remoting (CVE-2025-48983) | nhienit</title>
+<meta name="keywords" content="research">
+<meta name="description" content=".NET Remoting exploit with CVE-2025-48983">
+<meta name="author" content="nhienit">
+<link rel="canonical" href="https://nhienit2010.github.io/posts/story-about-veeam-and-dotnet-remoting/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.343cc480b9ffc8f04ccbe5e968ad674880cab773ec19905e93033065c1e7a804.css" integrity="sha256-NDzEgLn/yPBMy&#43;XpaK1nSIDKt3PsGZBekwMwZcHnqAQ=" rel="preload stylesheet" as="style">
+<link rel="icon" href="https://nhienit2010.github.io/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="https://nhienit2010.github.io/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="https://nhienit2010.github.io/favicon-32x32.png">
+<link rel="apple-touch-icon" href="https://nhienit2010.github.io/apple-touch-icon.png">
+<link rel="mask-icon" href="https://nhienit2010.github.io/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="https://nhienit2010.github.io/posts/story-about-veeam-and-dotnet-remoting/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+                color-scheme: dark;
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .toc {
+                background: var(--entry);
+            }
+        }
+
+        @media (prefers-color-scheme: light) {
+            .list::-webkit-scrollbar-thumb {
+                border-color: var(--code-bg);
+            }
+        }
+
+    </style>
+</noscript>
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else if (localStorage.getItem("pref-theme") === "light") {
+       document.querySelector("html").dataset.theme = 'light';
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else {
+        document.querySelector("html").dataset.theme = 'light';
+    }
+
+</script><meta property="og:url" content="https://nhienit2010.github.io/posts/story-about-veeam-and-dotnet-remoting/">
+  <meta property="og:site_name" content="nhienit">
+  <meta property="og:title" content="Câu chuyện về Veeam và .NET Remoting (CVE-2025-48983)">
+  <meta property="og:description" content=".NET Remoting exploit with CVE-2025-48983">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2025-11-28T21:34:54+07:00">
+    <meta property="article:modified_time" content="2025-11-28T21:34:54+07:00">
+    <meta property="article:tag" content="Research">
+      <meta property="og:image" content="https://nhienit2010.github.io/images/papermod-cover.png">
+      <meta property="og:see_also" content="https://nhienit2010.github.io/posts/me_sqli_to_rce/">
+      <meta property="og:see_also" content="https://nhienit2010.github.io/posts/cve-2024-5443-path-traversal-to-rce/">
+      <meta property="og:see_also" content="https://nhienit2010.github.io/posts/cve-2022-3133-drawio-xss-to-rce/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://nhienit2010.github.io/images/papermod-cover.png">
+<meta name="twitter:title" content="Câu chuyện về Veeam và .NET Remoting (CVE-2025-48983)">
+<meta name="twitter:description" content=".NET Remoting exploit with CVE-2025-48983">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "https://nhienit2010.github.io/posts/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "Câu chuyện về Veeam và .NET Remoting (CVE-2025-48983)",
+      "item": "https://nhienit2010.github.io/posts/story-about-veeam-and-dotnet-remoting/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Câu chuyện về Veeam và .NET Remoting (CVE-2025-48983)",
+  "name": "Câu chuyện về Veeam và .NET Remoting (CVE-2025-48983)",
+  "description": ".NET Remoting exploit with CVE-2025-48983",
+  "keywords": [
+    "research"
+  ],
+  "articleBody": "Có thể xem như đây là bài post đầu tiên của mình trong năm nay, cũng gần cuối năm mới có hứng để viết bài và một phần cũng vì dạo này cũng cảm thấy không có gì hay ho để viết hết cả 😢!\nNên trong lúc lượn lờ một vòng quanh internet để tìm cảm hứng, vô tình tìm thấy một list advisory và cũng thôi thúc mình thử tìm hiểu xem các CVE này có gì hay mà điểm CVSS đến tận 9.9. Vì thế, nên mình đã chọn CVE-2025-48983 để phân tích và dù sao thì cũng một công đôi việc, bắt đầu thôi nào !\n#Mở đầu Veeam Backup \u0026 Replication là phần mềm sao lưu và phục hồi dữ liệu phổ biến dành cho môi trường ảo hóa, vật lý và đám mây, chủ yếu dùng trong doanh nghiệp. Trong đó, ứng dụng tồn tại một số thành phần chính như :\nVeeam Backup Server : server chính quản lý các jobs, repository, proxy, … Veeam Backup Proxy : giúp thực thi đọc/ghi dữ liệu, tăng tốc độ backup, … Veeam Backup Repository : là nơi lưu trữ các file backup Veeam Agent : để cài lên máy host dùng cho việc backup/restore Veeam Console : GUI quản lý chung, xem các jobs, policy, … … Lỗ hổng được report bởi Code White là một tổ chức an ninh mạng nổi tiếng tại Đức, liên quan đến dịch vụ Mount Service trên ứng dụng Veeam Backup \u0026 Replication cho phép thực thi mã từ xa (RCE) trên các máy host nằm trong Backup Infrastructure với quyền domain user và những host không join domain thì sẽ không bị ảnh hưởng bởi lỗ hổng này.\nĐọc lướt qua nghe thì có vẻ rối não, nhưng có một số ý ta cần phải note lại trong quá trình phân tích như: Mount Service, RCE, authenticated domain user, Backup Infrastructure vì chúng có thể sẽ giúp ta thu hẹp lại phạm vi code audit trong quá trình phân tích.\n#Các version bị ảnh hưởng Veeam Backup \u0026 Replication \u003c= 12.3.2.3617 #Setup môi trường Thực hiện download các bản cài đặt:\nInstaller: https://download2.veeam.com/VBR/v12/VeeamBackup\u0026Replication_12.3.2.3617_20250610.iso Patch: https://www.veeam.com/download_add_packs/vmware-esx-backup/12.3.2.4165_20251014_update_exe/ Sau khi thực hiện download file cài đặt dạng .iso xong, thực hiện mount ra đĩa, run setup.exe và cài đặt hết các option trong đó là coi như việc cài đặt hoàn tất.\nTuy nhiên, có một số phần service cần license để cài đặt, thì có thể tạo tài khoản tại https://my.veeam.com/ và vào phần Trial license lấy license dùng thử để thực hiện cài đặt.\n#Phân tích bản vá Theo như mô tả trên Issue Details, nhận thấy rằng lỗ hổng chủ yếu nằm tại Mount Service, nên sử dụng dnspy attach vào process Veeam.Backup.MountService.exe và sau đó thực hiện load hết các module mà process đang sử dụng trước khi decompile ra các file csharp, đảm bảo option Show tokens,... tại Debug \u003e Options \u003e Decompiler được bỏ tick, mục đích là để bỏ bớt các thông tin mô tả thừa hoặc byte rác để thuận tiện cho việc diff. Sau đó, tại Assembly Explorer thực hiện nhấn tổ hợp phím Ctrl + A để chọn hết các assembly và sau đó chọn File \u003e Export to Project... để thực hiện decompile ra một thư mục chuẩn bị cho việc diff. Về phần bản vá, tại folder Fixed ta thấy có một bản cài đặt riêng cho Mount Service là VeeamMountService.msi, chổ này ta thực hiện cài đặt riêng nó trên một máy khác hoặc ở đâu đó và thực hiện decompile tương tự bằng dnspy như cách trên.\nSau khi decompile version bị lỗi và cả bản vá, việc còn lại là vứt vào WinMerge để diff thôi. Và ở cả phần diff này thì mình cũng sẽ chủ yếu focus tại các namespace của Mount Service như:\nVeeam.Backup.MountServiceLib.* Veeam.Backup.MountService.* Trong lúc xem xét bản vá, tại constructor của class Veeam.Backup.MountServiceLib.CMountServiceEnvironment có một điểm cảm thấy bất thường và khiến mình tò mò muốn phân tích sâu là bản vá đã add thêm tham số thứ 3 cho hàm CCliTcpChannelRegistration.Make() và force value là true.\nTheo như bản gốc, thì tại hàm Veeam.Common.Remoting.CCliTcpChannelRegistration#Make() chưa define hàm nào nhận vào tham số thứ 3 là kiểu boolean nên hiện tại chưa biết tham số thứ ba trên có ý nghĩa là gì cả! Trở về xem xét lại bản diff, tại Veeam.Common.Remoting.CCliTcpChannelRegistration đã thêm một new version của hàm Make() với thêm một argument là whitelistResponse và tham số whitelistResponse này, được đặt thẳng vào Veeam.Common.Remoting.CBinaryClientFormatterSinkProvider.\nNhìn sơ bộ, nếu ai đã từng xem qua thì có thể nhận thấy rằng chương trình đang khởi tạo một .NET Remoting Client service còn hoạt động như nào thì mình sẽ giới thiệu sau nhưng ở đây chương trình có sử dụng một sink provider là CBinaryClientFormatterSinkProvider.\nCó thể hiểu nôm na là các sink provider dùng để tạo hoặc cấu hình lên một chuỗi cái sink (sink chain) và mỗi sink được sinh ra để thực hiện xử lý luồng message đi qua các channel cho việc logging, serialzation, decrypt, uncompression, … các message để server xử lý hoặc xuống tầng transport để gửi đi qua channel khác.\nNhư đã nói, việc tạo các sink sẽ được gọi qua hàm CreateSink(), cụ thể tại class Veeam.Common.Remoting.CBinaryClientFormatterSinkProvider như sau: sẽ trả về một instance của CBinaryClientFormatterSink, trong đó argument _whitelistResponse là thứ mà ta cần quan tâm. Vì đây là một .NET Remoting Client nên có thể quan sát thấy rằng họ không implement các hàm xử lý request message tại hàm Veeam.Common.Remoting.CBinaryClientFormatterSink#AsyncProcessResponse() thực hiện deserialize response stream thông qua hàm DeserializeMessage() tiếp tục, gọi tiếp hàm Veeam.Common.Remoting.CCoreChannel#DeserializeBinaryResponseMessage() lúc này biến whitelistResponse được đổi tên thành useRestrictedBinder và đây là mấu chốt của vấn đề, khi useRestrictedBinder là true thì chương trình sẽ sử dụng class RestrictedSerializationBinder cho BinaryFormatter để ngăn chặn deserialization attack nên đó cũng là lý do bản vá force value là true cho tham số thứ ba của hàm Veeam.Common.Remoting.CCliTcpChannelRegistration#Make() Tại bản cũ, by default là false vì có thể developer nghĩ rằng client luôn kết nối đến mọi .NET Remoting Server đáng tin cậy hoặc không thể nào modify để tạo ra được một malicious response để tấn công chổ này :)) #Phân tích Cũng không quá khó để chúng ta có thể tìm được sink của lỗ hổng như bên trên, còn lại việc tìm điểm để trigger lỗ hổng thì mình nghĩ mới thực sự là vấn đề :)). Nhưng trước khi đi sâu vào phân tích thì có một số khái niệm cần phải tìm hiểu.\n#.NET Remoting Theo cách hiểu nôm na của mình, đây là một công nghệ cho phép các Application Domain hoặc các process có thể giao tiếp được với nhau thông qua các channel. Thì về cơ bản, các Application Domain hoặc các process được cô lập với nhau để nếu có xảy ra trục trặc sẽ tránh ảnh hưởng đến quá trình hoạt động của nhau, vì thế .NET Remoting ra đời như một cầu nối để chúng có thể giao tiếp được với nhau (hay còn gọi là giao tiếp liên tiến trình). Cơ chế hoạt động của .NET Remoting cũng na ná so với Java RMI, nghĩa là mô hình cho phép server expose một số object, đồng thời tạo instance cho các object đó cho phép các client có thể nó gọi từ xa (remotable object), và phía client có thể gọi các remotable object đó trên process ở phía server thông qua giao thức TCP/HTTP/IPC.\nTrên phía server sẽ define một tập các object được expose ra bên ngoài cho client có thể gọi tới, song đó thì phía client cũng phải có tập các instance về những remotable object đó trước khi call lên server. Thường thì các remotable object này được gói và chia sẻ trong các file dll.\nThường thì các remotable object nên được kế thừa từ class/interface là Serializable hoặc MarshalByRefObject thì các client mới có thể gọi từ xa , kiểu như sau:\nusing System; using System.Collections.Generic; using System.Linq; using System.Text; using System.Threading.Tasks; namespace RemotingSample { public class RemoteMath : MarshalByRefObject { public int Add(int a, int b) // add { Console.WriteLine(\"Add({0},{1}) called\", a, b); return a + b; } public int Sub(int a, int b) // subtract { Console.WriteLine(\"Sub({0},{1}) called\", a, b); return a - b; } } } Thông tin về các sink provider mình cũng đã nói sơ ở bên trên, ta có thể hình dung mô hình hoạt động như ở bên dưới: Nguồn: https://g7shot.com/posts/net/netremoting101/\nFramework cung cấp 2 cơ chế cho phép các object có thể đi qua các domain với nhau là Marshalling by reference và Marshalling by value.\nCơ chế Marshalled by value được sử dụng khi một object được marked là Serializable attribute, để hỗ trợ điều này thì BinaryFormatter class được sử dụng để convert thành các byte stream để truyền qua các AppDomain khác. Nếu một object cần Marshalled by reference thì nó cần phải implement từ class System.MarshalByRefObject, bất kỳ object nào bắt nguồn từ type này thì tự động được xử lý bởi framework, khi nó đi qua Application Domain khác thì framework sẽ gọi hàm MarshalByRefObject.CreateObjRef để trả về một instance của System.Runtime.Remoting.ObjRef , thì instance sẽ chứa tất cả các thông tin cần để tham chiếu tới object cần được gọi và giao tiếp ngược lại với channel. Object ObjRef được truyền qua các Application Domain khác bằng cách serialize thành dạng byte stream, bên Application Domain nhận sẽ thực hiện deserialize và construct lại object này. Trên là theo góc nhìn của mình, thật ra kiến trúc này phức tạp nhiều hơn mình nghĩ đối với góc nhìn của mình có thể có nhiều sai sót nên để chi tiết hơn thì các bạn có thể đọc thêm tại các tài liệu sau:\nhttps://parsiya.net/blog/2015-11-14-intro-to-.net-remoting-for-hackers/ https://www.codeproject.com/Articles/18997/Remoting-Architecture-in-NET http://rfc.nop.hu/winprot4/MS-NRTP.pdf https://g7shot.com/posts/net/netremoting101/ #Backup Infrastructure Backup Infrastructure trong Veeam Backup \u0026 Replication là toàn bộ tập hợp các thành phần phần cứng và phần mềm được Veeam sử dụng để thực hiện các hoạt động backup, restore và replication. Mục đích là giúp Veeam:\nKết nối đến môi trường ảo hóa (VMware, Hyper-V), máy vật lý, cloud. Quản lý luồng dữ liệu (đọc → xử lý → lưu trữ). Xác định nơi lưu backup, cách chạy job và tài nguyên sử dụng. #Storage Infrastructure Storage Infrastructure trong Veeam là tập hợp các hệ thống lưu trữ mà Veeam có thể kết nối trực tiếp để lấy snapshot, đọc dữ liệu hoặc tối ưu hoá quá trình backup và restore. Giúp Veeam:\nKhai thác storage snapshot để backup nhanh hơn và không ảnh hưởng đến production. Tăng tốc độ restore (Instant VM Recovery, file/volume recovery). #CVE-2025-48983 Nghiên cứu lại một xíu về Mount Service, ngoài việc chương trình tạo một .NET Remoting Client (tại line 49) thì bên cạnh còn tạo thêm một .NET Remoting Server (tại line 48) nữa với channel name là rstcp Dịch vụ này run tại port 6170 và cũng là port Mount Service đang chạy .NET Remoting Server chạy với một số cấu hình như sau: dictionary[\"secure\"] = \"true\" cho thấy rằng client cần phải xác thực trước khi truy cập vào dịch vụ bên trong, điều này cũng gần giống với mô tả của issue details :))\nNgoài port ra, một thứ ta cần biết nữa là service name, vì phải biết service name thì client mới connect đến chính xác được. Trace code ngược lại từ lúc init enviroment, ta thấy được hàm Veeam.Backup.MountService.CMountService#OnStart() sẽ được gọi khi Mount Service chạy. bởi vì class Veeam.Backup.MountService.CMountService được implement từ System.ServiceProcess.ServiceBase Theo document: Tại hàm Veeam.Backup.MountServiceLib.CRestoreServiceRemotingApiRegistration#RegisterRemotingTypes() sẽ thực hiện đăng ký một .NET Remoting service Và cuối cùng thì mình cũng thấy được service name được define tại Veeam.Backup.MountServiceLib.CMountServiceImpl#StartLeasing() có tên là RestoreService Như phân tích từ bước đầu, sink ta cần reach đến là chức năng deserialize response ở .NET Remoting Client là phía Veeam Server. Thì mình nghĩ rất có thể Mount Service ở phía Veeam sẽ gọi đến Mount Service ở một host khác và chức năng có liên quan đến restore.\nMình đã suy nghĩ rất nhiều về điều này, đã thực hiện sử dụng một số chức năng như thực hiện backup một volume trên Windows Server đã join domain và thực hiện restore, và 7749 lần thử khác nhưng vẫn không reach được tới sink deserialize. Nhưng nghĩ lại thì việc backup không yêu cầu phải add server đó vào trước (cái mà issue detail yêu cầu), nên mình đã suy nghĩ theo một hướng khác, có thể liên quan đến sử dụng một máy Windows đã join domain làm một Storage Infrastructure để chứa các bản backup, sau đó, thực hiện backup một volume trên máy bất kỳ và lưu trên máy Windows Storage đó sau đó thực hiện restore lại với backup data được lấy từ remote storage, và quá trình này cũng phải đòi hỏi authenticate đến server storage (đặc biệt là nếu đã join domain).\nLý thuyết là vậy nhưng ta phải cần một số yếu tố nữa để chắc chắn, lúc này thì mình chuyển qua tìm nơi client gọi lên server, search với keyword cơ bản như RestoreService. Tại sao mình search như vậy? Là tại vì như đã nói thì client muốn kết nối đến server thì ngoài phải biết ip + port ra còn phải biết service name, nên nếu có gọi đâu đó trong Mount Service thì chắc chắn sẽ khai báo đâu đó trong đây.\nRất may mắn là phán đoán của mình chính xác, tại constructor của class Veeam.Backup.Interaction.MountService.CVeeamRestoreServiceProxy tạo một TCP url có chứa RestoreService service name Tại đây, ta phân tích thấy rằng:\nprivate CVeeamRestoreServiceProxy(CConnection connection, string serviceUri, string channelName) { CVeeamRestoreServiceProxy \u003c\u003e4__this = this; this._connection = connection; this._creator = new CMbrCreator\u003cIVeeamRestoreService\u003e(delegate { string saobjectURL = RemotingHelper.GetSAObjectURL(\"tcp\", \u003c\u003e4__this._connection.HostName, \u003c\u003e4__this._connection.HostPort, serviceUri); string spn = SKerberosHelper.GetSpn(\u003c\u003e4__this._connection.HostName, SKerberosHelper.SPN_SERVICE_CLASS_Mount); return (IVeeamRestoreService)new CSecuredProxy(typeof(IVeeamRestoreService), saobjectURL, (\u003c\u003e4__this._connection.Creds == null) ? null : new CNetworkCredential(\u003c\u003e4__this._connection.Creds), spn, \u003c\u003e4__this._connection.RemoteVersion, null, null, channelName).GetTransparentProxy(); }); this._connection.MbrCreators.Add(this._creator); } nếu như \u003c\u003e4__this._connection.Creds không phải null thì sẽ sử dụng CNetworkCredential để authen qua network stream, đi sâu vào quan sát class Veeam.Common.Remoting.CNetworkCredential, nếu như không có thông tin domain thì sẽ throw exception và các bước tách username với domain thực hiện tại class Veeam.Backup.Common.CCredentials =\u003e đây có thể là câu trả lời cho Backup infrastructure servers that are not domain-joined are not impacted by this vulnerability.\nDo đó, phần còn lại của mình hiện tại là ở Mount Service tìm ra chức năng gọi đến nó, như các bạn có thể thấy rằng đây là một ví dụ khá đẹp: nhìn sơ qua, thì thấy chức năng Log Exporter rất có tiềm năng, sau đó mình đã đặt break-point và search google + chatgpt đủ kiểu, thì chỉ thấy được một chức năng liên quan đến log export là tại Help \u003e Support Information \u003e Export Logs nhưng cứ export log mãi trên máy Windows đã join domain mà không thấy break-point hit😢. Bất lực nên mình quyết định kiểm tra các nhánh Find Usage còn lại.\nLại thêm một chức năng tìm năng khác chính là ScanForViruses và ScanWithYara và mình nhận ra hai chức năng này mình đã gặp nó ở đâu đó rồi thì phải :)) và cụ thể là ở chức năng Restore này Để kiểm tra điều này, mình thực hiện đặt break-point tại constructor của class Veeam.Backup.Interaction.MountService.CVeeamRestoreServiceProxy, sau đó thực hiện restore kèm theo chức năng scan content với antivirus để debug, nhưng đến khi việc restore hoàn tất mà bp vẫn không hit??? :((\nTừ đó mình đặt ra giả thuyết rằng có thể chức năng này không được gọi bởi process hiện tại là Mount Service và đó cũng là lý do break-point không hit được! Sau đó, mình đã tiến hành xem xét các process còn lại, kèm theo một số thông tin từ ChatGPT thì nhận thấy rằng rất có khả năng chức năng này được gọi bởi process Veeam.Backup.Service.exe, thực hiện tương tự như bước trên thì BOOOOOM! Callstack:\nVeeam.Common.Remoting.dll!Veeam.Common.Remoting.RemotingHelper.GetSAObjectURL(string proto, string machine, int port, string uri) (IL=0x0000, Native=0x00007FFC05D77DE0+0x16) Veeam.Backup.Interaction.MountService.dll!Veeam.Backup.Interaction.MountService.CVeeamRestoreServiceProxy.\u003c\u003ec__DisplayClass3_0.\u003c.ctor\u003eb__0() (IL≈0x0000, Native=0x00007FFC05D77BF0+0x6A) Veeam.Common.Remoting.dll!Veeam.Common.Remoting.CMbrCreator.CMbrCreator(Veeam.Common.Remoting.CreateMbrDelegate dlgCreate) (IL≈0x0018, Native=0x00007FFC0571ABF0+0x3D) Veeam.Backup.Interaction.MountService.dll!Veeam.Backup.Interaction.MountService.CVeeamRestoreServiceProxy.CVeeamRestoreServiceProxy(Veeam.Backup.Interaction.MountService.CConnection connection, string serviceUri, string channelName) (IL=0x003A, Native=0x00007FFC05D77AF0+0xA4) Veeam.Backup.Interaction.MountService.dll!Veeam.Backup.Interaction.MountService.CRemoteRestoreProxyClient.CRemoteRestoreProxyClient(Veeam.Backup.Model.CClientSessionClientInfo clientInfo, Veeam.Backup.Interaction.MountService.CConnection connection) (IL=0x0092, Native=0x00007FFC05D77840+0x1E6) Veeam.Backup.Interaction.MountService.dll!Veeam.Backup.Interaction.MountService.CRemoteRestoreProxyClient.ConnectTo(Veeam.Backup.Model.CClientSessionClientInfo clientInfo, string ipOrDnsName, int port, Veeam.Backup.Common.CCredentials credentialsOrNull) (IL≈0x0034, Native=0x00007FFC05D77180+0x11D) Veeam.Backup.ServiceLib.dll!Veeam.Backup.ServiceLib.CRestoreManagementService.CreateRemoteRestoreProxyClient(Veeam.Backup.Model.CRestoreProxyBinding proxyBinding) (IL=epilog, Native=0x00007FFC05D76FD0+0xC1) Veeam.Backup.ServiceLib.dll!Veeam.Backup.ServiceLib.CRestoreManagementService.FindFirstAvailableAntivirus(Veeam.Backup.Model.CRestoreProxyBinding proxyBinding) (IL=prolog, Native=0x00007FFC05D76F10+0x19) Veeam.Backup.ServiceLib.dll!Veeam.Backup.ServiceLib.CRestoreManagementService.IsAntivirusExists(Veeam.Backup.Model.CRestoreProxyBinding proxyBinding) (IL≈0x0000, Native=0x00007FFC05D76EE0+0x9) ... Yeah, sink đã reach và vấn đề đau đầu nhất có vẻ đã giải quyết xong, giờ thì chỉ còn việc build lại malicious server để exploit nữa là xong!\n#Exploit Ý tưởng là chỉ cần tạo một TcpServerChannel trả về một .NET Remoting Message trong đó body là deserialize payload. Trong đó, server đảm bảo rằng:\nPort: 6170 Authentication: required Channel Name: rstcp Service Name: RestoreService Có thể các bạn thắc mắc một số chổ trên poc, nhưng vì để tránh post dài nên các bạn có thể tự tìm hiểu qua các tài liệu mình đính kèm trên bài này nhé!\n#PoC #References https://www.veeam.com/kb4771 https://helpcenter.veeam.com/docs/backup/vsphere/components.html?ver=120 https://helpcenter.veeam.com/docs/backup/vsphere/add_windows_server.html?ver=120 ",
+  "wordCount" : "2864",
+  "inLanguage": "en",
+  "image": "https://nhienit2010.github.io/images/papermod-cover.png","datePublished": "2025-11-28T21:34:54+07:00",
+  "dateModified": "2025-11-28T21:34:54+07:00",
+  "author":[{
+    "@type": "Person",
+    "name": "nhienit"
+  }],
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://nhienit2010.github.io/posts/story-about-veeam-and-dotnet-remoting/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "nhienit",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://nhienit2010.github.io/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+<body id="top">
+    <header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="https://nhienit2010.github.io/" accesskey="h" title="nhienit (Alt + H)">nhienit</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="https://nhienit2010.github.io/archives/" title="Archive">
+                    <span>Archive</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://nhienit2010.github.io/tags/" title="Tags">
+                    <span>Tags</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="https://nhienit2010.github.io/">Home</a>&nbsp;»&nbsp;<a href="https://nhienit2010.github.io/posts/">Posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      Câu chuyện về Veeam và .NET Remoting (CVE-2025-48983)
+    </h1>
+    <div class="post-meta"><span title='2025-11-28 21:34:54 +0700 +07'>November 28, 2025</span>&nbsp;·&nbsp;<span>14 min</span>&nbsp;·&nbsp;<span>nhienit</span>&nbsp;|&nbsp;<span>
+    <a href="https://github.com/adityatelange/hugo-PaperMod/tree/exampleSite/content/posts/story-about-veeam-and-dotnet-remoting.md" rel="noopener noreferrer edit" target="_blank">Suggest Changes</a>
+</span>
+
+</div>
+  </header> <div class="toc">
+    <details  open>
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">Table of Contents</span>
+        </summary>
+
+        <div class="inner"><ul>
+                <li>
+                    <a href="#m%e1%bb%9f-%c4%91%e1%ba%a7u" aria-label="#Mở đầu">#Mở đầu</a></li>
+                <li>
+                    <a href="#c%c3%a1c-version-b%e1%bb%8b-%e1%ba%a3nh-h%c6%b0%e1%bb%9fng" aria-label="#Các version bị ảnh hưởng">#Các version bị ảnh hưởng</a></li>
+                <li>
+                    <a href="#setup-m%c3%b4i-tr%c6%b0%e1%bb%9dng" aria-label="#Setup môi trường">#Setup môi trường</a></li>
+                <li>
+                    <a href="#ph%c3%a2n-t%c3%adch-b%e1%ba%a3n-v%c3%a1" aria-label="#Phân tích bản vá">#Phân tích bản vá</a></li>
+                <li>
+                    <a href="#ph%c3%a2n-t%c3%adch" aria-label="#Phân tích">#Phân tích</a><ul>
+                        
+                <li>
+                    <a href="#net-remoting" aria-label="#.NET Remoting">#.NET Remoting</a></li>
+                <li>
+                    <a href="#backup-infrastructure" aria-label="#Backup Infrastructure">#Backup Infrastructure</a></li>
+                <li>
+                    <a href="#storage-infrastructure" aria-label="#Storage Infrastructure">#Storage Infrastructure</a></li>
+                <li>
+                    <a href="#cve-2025-48983" aria-label="#CVE-2025-48983">#CVE-2025-48983</a></li></ul>
+                </li>
+                <li>
+                    <a href="#exploit" aria-label="#Exploit">#Exploit</a></li>
+                <li>
+                    <a href="#poc" aria-label="#PoC">#PoC</a></li>
+                <li>
+                    <a href="#references" aria-label="#References">#References</a>
+                </li>
+            </ul>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><p>Có thể xem như đây là bài post đầu tiên của mình trong năm nay, cũng gần cuối năm mới có hứng để viết bài và một phần cũng vì dạo này cũng cảm thấy không có gì hay ho để viết hết cả 😢!</p>
+<p>Nên trong lúc lượn lờ một vòng quanh internet để tìm cảm hứng, vô tình tìm thấy một list <a href="https://www.veeam.com/kb4771">advisory</a> và cũng thôi thúc mình thử tìm hiểu xem các CVE này có gì hay mà điểm CVSS đến tận 9.9. Vì thế, nên mình đã chọn CVE-2025-48983 để phân tích và dù sao thì cũng một công đôi việc, bắt đầu thôi nào !</p>
+<h3 id="mở-đầu">#Mở đầu<a hidden class="anchor" aria-hidden="true" href="#mở-đầu">#</a></h3>
+<p>Veeam Backup &amp; Replication là phần mềm sao lưu và phục hồi dữ liệu phổ biến dành cho môi trường ảo hóa, vật lý và đám mây, chủ yếu dùng trong doanh nghiệp. Trong đó, ứng dụng tồn tại một số thành phần chính như :</p>
+<ul>
+<li>Veeam Backup Server : server chính quản lý các jobs, repository, proxy, &hellip;</li>
+<li>Veeam Backup Proxy : giúp thực thi đọc/ghi dữ liệu, tăng tốc độ backup, &hellip;</li>
+<li>Veeam Backup Repository : là nơi lưu trữ các file backup</li>
+<li>Veeam Agent : để cài lên máy host dùng cho việc backup/restore</li>
+<li>Veeam Console : GUI quản lý chung, xem các jobs, policy, &hellip;</li>
+<li>&hellip;</li>
+</ul>
+<p><img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/1.png">
+Lỗ hổng được report bởi <a href="https://code-white.com/">Code White</a> là một tổ chức an ninh mạng nổi tiếng tại Đức, liên quan đến dịch vụ <code>Mount Service</code> trên ứng dụng <code>Veeam Backup &amp; Replication</code> cho phép thực thi mã từ xa (RCE) trên các máy host nằm trong Backup Infrastructure với quyền domain user và những host không join domain thì sẽ không bị ảnh hưởng bởi lỗ hổng này.</p>
+<p>Đọc lướt qua nghe thì có vẻ rối não, nhưng có một số ý ta cần phải note lại trong quá trình phân tích như: <code>Mount Service</code>, <code>RCE</code>, <code>authenticated domain user</code>, <code>Backup Infrastructure</code> vì chúng có thể sẽ giúp ta thu hẹp lại phạm vi code audit trong quá trình phân tích.</p>
+<h3 id="các-version-bị-ảnh-hưởng">#Các version bị ảnh hưởng<a hidden class="anchor" aria-hidden="true" href="#các-version-bị-ảnh-hưởng">#</a></h3>
+<ul>
+<li>Veeam Backup &amp; Replication &lt;= 12.3.2.3617</li>
+</ul>
+<h3 id="setup-môi-trường">#Setup môi trường<a hidden class="anchor" aria-hidden="true" href="#setup-môi-trường">#</a></h3>
+<p>Thực hiện download các bản cài đặt:</p>
+<ul>
+<li>Installer: <a href="https://download2.veeam.com/VBR/v12/VeeamBackup&amp;Replication_12.3.2.3617_20250610.iso">https://download2.veeam.com/VBR/v12/VeeamBackup&Replication_12.3.2.3617_20250610.iso</a></li>
+<li>Patch: <a href="https://www.veeam.com/download_add_packs/vmware-esx-backup/12.3.2.4165_20251014_update_exe/">https://www.veeam.com/download_add_packs/vmware-esx-backup/12.3.2.4165_20251014_update_exe/</a></li>
+</ul>
+<p>Sau khi thực hiện download file cài đặt dạng .iso xong, thực hiện mount ra đĩa, run <code>setup.exe</code> và cài đặt hết các option trong đó là coi như việc cài đặt hoàn tất.</p>
+<p>Tuy nhiên, có một số phần service cần license để cài đặt, thì có thể tạo tài khoản tại <a href="https://my.veeam.com/">https://my.veeam.com/</a> và vào phần <code>Trial license</code> lấy license dùng thử để thực hiện cài đặt.</p>
+<p><img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/2.png"></p>
+<h3 id="phân-tích-bản-vá">#Phân tích bản vá<a hidden class="anchor" aria-hidden="true" href="#phân-tích-bản-vá">#</a></h3>
+<p>Theo như mô tả trên Issue Details, nhận thấy rằng lỗ hổng chủ yếu nằm tại <code>Mount Service</code>, nên sử dụng dnspy attach vào process <code>Veeam.Backup.MountService.exe</code>
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/3.png"></p>
+<p>và sau đó thực hiện load hết các module mà process đang sử dụng
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/4.png"></p>
+<p>trước khi decompile ra các file csharp, đảm bảo option <code>Show tokens,...</code> tại <code>Debug &gt; Options &gt; Decompiler</code> được bỏ tick, mục đích là để bỏ bớt các thông tin mô tả thừa hoặc byte rác để thuận tiện cho việc diff.
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/7.png"></p>
+<p>Sau đó, tại <code>Assembly Explorer</code> thực hiện nhấn tổ hợp phím <code>Ctrl + A</code> để chọn hết các assembly và sau đó chọn <code>File &gt; Export to Project...</code> để thực hiện decompile ra một thư mục chuẩn bị cho việc diff.
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/6.png"></p>
+<p>Về phần bản vá, tại folder <code>Fixed</code> ta thấy có một bản cài đặt riêng cho <code>Mount Service</code> là <code>VeeamMountService.msi</code>,
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/8.png">
+chổ này ta thực hiện cài đặt riêng nó trên một máy khác hoặc ở đâu đó và thực hiện decompile tương tự bằng dnspy như cách trên.</p>
+<p>Sau khi decompile version bị lỗi và cả bản vá, việc còn lại là vứt vào <code>WinMerge</code> để diff thôi. Và ở cả phần diff này thì mình cũng sẽ chủ yếu focus tại các namespace của Mount Service như:</p>
+<ul>
+<li><code>Veeam.Backup.MountServiceLib.*</code></li>
+<li><code>Veeam.Backup.MountService.*</code></li>
+</ul>
+<p>Trong lúc xem xét bản vá, tại constructor của class <code>Veeam.Backup.MountServiceLib.CMountServiceEnvironment</code> có một điểm cảm thấy bất thường và khiến mình tò mò muốn phân tích sâu là bản vá đã add thêm tham số thứ 3 cho hàm <code>CCliTcpChannelRegistration.Make()</code> và force value là <code>true</code>.<br>
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/9.png"></p>
+<p>Theo như bản gốc, thì tại hàm <code>Veeam.Common.Remoting.CCliTcpChannelRegistration#Make()</code> chưa define hàm nào nhận vào tham số thứ 3 là kiểu boolean nên hiện tại chưa biết tham số thứ ba trên có ý nghĩa là gì cả!
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/10.png"></p>
+<p>Trở về xem xét lại bản diff, tại <code>Veeam.Common.Remoting.CCliTcpChannelRegistration</code> đã thêm một new version của hàm <code>Make()</code> với thêm một argument là <code>whitelistResponse</code>
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/11.png">
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/12.png"></p>
+<p>và tham số <code>whitelistResponse</code> này, được đặt thẳng vào <code>Veeam.Common.Remoting.CBinaryClientFormatterSinkProvider</code>.</p>
+<p>Nhìn sơ bộ, nếu ai đã từng xem qua thì có thể nhận thấy rằng chương trình đang khởi tạo một <code>.NET Remoting Client</code> service còn hoạt động như nào thì mình sẽ giới thiệu sau nhưng ở đây chương trình có sử dụng một sink provider là <code>CBinaryClientFormatterSinkProvider</code>.</p>
+<p>Có thể hiểu nôm na là các sink provider dùng để tạo hoặc cấu hình lên một chuỗi cái sink (sink chain) và mỗi sink được sinh ra để thực hiện xử lý luồng message đi qua các channel cho việc logging, serialzation, decrypt, uncompression, &hellip; các message để server xử lý hoặc xuống tầng transport để gửi đi qua channel khác.</p>
+<p>Như đã nói, việc tạo các sink sẽ được gọi qua hàm <code>CreateSink()</code>, cụ thể tại class <code>Veeam.Common.Remoting.CBinaryClientFormatterSinkProvider</code> như sau:
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/13.png"></p>
+<p>sẽ trả về một instance của <code>CBinaryClientFormatterSink</code>, trong đó argument <code>_whitelistResponse</code> là thứ mà ta cần quan tâm. Vì đây là một <code>.NET Remoting Client</code> nên có thể quan sát thấy rằng họ không implement các hàm xử lý request message
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/14.png">
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/15.png"></p>
+<p>tại hàm <code>Veeam.Common.Remoting.CBinaryClientFormatterSink#AsyncProcessResponse()</code> thực hiện deserialize response stream thông qua hàm <code>DeserializeMessage()</code>
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/16.png"></p>
+<p>tiếp tục, gọi tiếp hàm <code>Veeam.Common.Remoting.CCoreChannel#DeserializeBinaryResponseMessage()</code>
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/17.png"></p>
+<p>lúc này biến <code>whitelistResponse</code> được đổi tên thành <code>useRestrictedBinder</code>
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/18.png"></p>
+<p>và đây là mấu chốt của vấn đề, khi <code>useRestrictedBinder</code> là <code>true</code> thì chương trình sẽ sử dụng class <code>RestrictedSerializationBinder</code> cho <code>BinaryFormatter</code> để ngăn chặn deserialization attack nên đó cũng là lý do bản vá force value là <code>true</code> cho tham số thứ ba của hàm <code>Veeam.Common.Remoting.CCliTcpChannelRegistration#Make()</code>
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/19.png"></p>
+<p>Tại bản cũ, by default là <code>false</code> vì có thể developer nghĩ rằng client luôn kết nối đến mọi <code>.NET Remoting Server</code> đáng tin cậy hoặc không thể nào modify để tạo ra được một malicious response để tấn công chổ này :))
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/20.png"></p>
+<h3 id="phân-tích">#Phân tích<a hidden class="anchor" aria-hidden="true" href="#phân-tích">#</a></h3>
+<p>Cũng không quá khó để chúng ta có thể tìm được sink của lỗ hổng như bên trên, còn lại việc tìm điểm để trigger lỗ hổng thì mình nghĩ mới thực sự là vấn đề :)). Nhưng trước khi đi sâu vào phân tích thì có một số khái niệm cần phải tìm hiểu.</p>
+<h4 id="net-remoting">#.NET Remoting<a hidden class="anchor" aria-hidden="true" href="#net-remoting">#</a></h4>
+<p>Theo cách hiểu nôm na của mình, đây là một công nghệ cho phép các Application Domain hoặc các process có thể giao tiếp được với nhau thông qua các channel. Thì về cơ bản, các Application Domain hoặc các process được cô lập với nhau để nếu có xảy ra trục trặc sẽ tránh ảnh hưởng đến quá trình hoạt động của nhau, vì thế .NET Remoting ra đời như một cầu nối để chúng có thể giao tiếp được với nhau (hay còn gọi là giao tiếp liên tiến trình). Cơ chế hoạt động của .NET Remoting cũng na ná so với Java RMI, nghĩa là mô hình cho phép server expose một số object, đồng thời tạo instance cho các object đó cho phép các client có thể nó gọi từ xa (remotable object), và phía client có thể gọi các remotable object đó trên process ở phía server thông qua giao thức TCP/HTTP/IPC.</p>
+<p>Trên phía server sẽ define một tập các object được expose ra bên ngoài cho client có thể gọi tới, song đó thì phía client cũng phải có tập các instance về những remotable object đó trước khi call lên server. Thường thì các remotable object này được gói và chia sẻ trong các file dll.</p>
+<p>Thường thì các remotable object nên được kế thừa từ class/interface là <code>Serializable</code> hoặc <code>MarshalByRefObject</code> thì các client mới có thể gọi từ xa , kiểu như sau:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-csharp" data-lang="csharp"><span class="line"><span class="cl"><span class="k">using</span> <span class="nn">System</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">using</span> <span class="nn">System.Collections.Generic</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">using</span> <span class="nn">System.Linq</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">using</span> <span class="nn">System.Text</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">using</span> <span class="nn">System.Threading.Tasks</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">namespace</span> <span class="nn">RemotingSample</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="kd">public</span> <span class="k">class</span> <span class="nc">RemoteMath</span> <span class="p">:</span> <span class="n">MarshalByRefObject</span>
+</span></span><span class="line"><span class="cl">  <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="kt">int</span> <span class="n">Add</span><span class="p">(</span><span class="kt">int</span> <span class="n">a</span><span class="p">,</span> <span class="kt">int</span> <span class="n">b</span><span class="p">)</span>    <span class="c1">// add</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">&#34;Add({0},{1}) called&#34;</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">      <span class="k">return</span> <span class="n">a</span> <span class="p">+</span> <span class="n">b</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="kd">public</span> <span class="kt">int</span> <span class="n">Sub</span><span class="p">(</span><span class="kt">int</span> <span class="n">a</span><span class="p">,</span> <span class="kt">int</span> <span class="n">b</span><span class="p">)</span>    <span class="c1">// subtract</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span>
+</span></span><span class="line"><span class="cl">      <span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">&#34;Sub({0},{1}) called&#34;</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">      <span class="k">return</span> <span class="n">a</span> <span class="p">-</span> <span class="n">b</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>Thông tin về các sink provider mình cũng đã nói sơ ở bên trên, ta có thể hình dung mô hình hoạt động như ở bên dưới:
+<figure>
+    <img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/21.webp"
+         alt="Nguồn: https://g7shot.com/posts/net/netremoting101/"/> <figcaption>
+            <p>Nguồn: <a href="https://g7shot.com/posts/net/netremoting101/">https://g7shot.com/posts/net/netremoting101/</a></p>
+        </figcaption>
+</figure>
+</p>
+<p>Framework cung cấp 2 cơ chế cho phép các object có thể đi qua các domain với nhau là <code>Marshalling by reference</code> và <code>Marshalling by value</code>.</p>
+<ul>
+<li>Cơ chế <code>Marshalled by value</code> được sử dụng khi một object được marked là <code>Serializable</code> attribute, để hỗ trợ điều này thì BinaryFormatter class được sử dụng để convert thành các byte stream để truyền qua các AppDomain khác.</li>
+<li>Nếu một object cần <code>Marshalled by reference</code> thì nó cần phải implement từ class <code>System.MarshalByRefObject</code>, bất kỳ object nào bắt nguồn từ type này thì tự động được xử lý bởi framework, khi nó đi qua Application Domain khác thì framework sẽ gọi hàm <code>MarshalByRefObject.CreateObjRef</code> để trả về một instance của <code>System.Runtime.Remoting.ObjRef</code> , thì instance sẽ chứa tất cả các thông tin cần để tham chiếu tới object cần được gọi và giao tiếp ngược lại với channel. Object <code>ObjRef</code> được truyền qua các Application Domain khác bằng cách serialize thành dạng byte stream, bên Application Domain nhận sẽ thực hiện deserialize và construct lại object này.</li>
+</ul>
+<p>Trên là theo góc nhìn của mình, thật ra kiến trúc này phức tạp nhiều hơn mình nghĩ đối với góc nhìn của mình có thể có nhiều sai sót nên để chi tiết hơn thì các bạn có thể đọc thêm tại các tài liệu sau:</p>
+<ul>
+<li><a href="https://parsiya.net/blog/2015-11-14-intro-to-.net-remoting-for-hackers/">https://parsiya.net/blog/2015-11-14-intro-to-.net-remoting-for-hackers/</a></li>
+<li><a href="https://www.codeproject.com/Articles/18997/Remoting-Architecture-in-NET">https://www.codeproject.com/Articles/18997/Remoting-Architecture-in-NET</a></li>
+<li><a href="http://rfc.nop.hu/winprot4/MS-NRTP.pdf">http://rfc.nop.hu/winprot4/MS-NRTP.pdf</a></li>
+<li><a href="https://g7shot.com/posts/net/netremoting101/">https://g7shot.com/posts/net/netremoting101/</a></li>
+</ul>
+<h4 id="backup-infrastructure">#Backup Infrastructure<a hidden class="anchor" aria-hidden="true" href="#backup-infrastructure">#</a></h4>
+<p>Backup Infrastructure trong Veeam Backup &amp; Replication là toàn bộ tập hợp các thành phần phần cứng và phần mềm được Veeam sử dụng để thực hiện các hoạt động backup, restore và replication. Mục đích là giúp Veeam:</p>
+<ul>
+<li>Kết nối đến môi trường ảo hóa (VMware, Hyper-V), máy vật lý, cloud.</li>
+<li>Quản lý luồng dữ liệu (đọc → xử lý → lưu trữ).</li>
+<li>Xác định nơi lưu backup, cách chạy job và tài nguyên sử dụng.</li>
+</ul>
+<p><img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/22.png"></p>
+<h4 id="storage-infrastructure">#Storage Infrastructure<a hidden class="anchor" aria-hidden="true" href="#storage-infrastructure">#</a></h4>
+<p>Storage Infrastructure trong Veeam là tập hợp các hệ thống lưu trữ mà Veeam có thể kết nối trực tiếp để lấy snapshot, đọc dữ liệu hoặc tối ưu hoá quá trình backup và restore. Giúp Veeam:</p>
+<ul>
+<li>Khai thác storage snapshot để backup nhanh hơn và không ảnh hưởng đến production.</li>
+<li>Tăng tốc độ restore (Instant VM Recovery, file/volume recovery).</li>
+</ul>
+<p><img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/23.png"></p>
+<h4 id="cve-2025-48983">#CVE-2025-48983<a hidden class="anchor" aria-hidden="true" href="#cve-2025-48983">#</a></h4>
+<p>Nghiên cứu lại một xíu về Mount Service, ngoài việc chương trình tạo một .NET Remoting Client (tại line 49) thì bên cạnh còn tạo thêm một .NET Remoting Server (tại line 48) nữa với channel name là <code>rstcp</code>
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/24.png"></p>
+<p>Dịch vụ này run tại port <code>6170</code>
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/25.png">
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/26.png"></p>
+<p>và cũng là port <code>Mount Service</code> đang chạy
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/27.png"></p>
+<p>.NET Remoting Server chạy với một số cấu hình như sau:
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/28.png"></p>
+<p><code>dictionary[&quot;secure&quot;] = &quot;true&quot;</code> cho thấy rằng client cần phải xác thực trước khi truy cập vào dịch vụ bên trong, điều này cũng gần giống với mô tả của issue details :))</p>
+<p>Ngoài port ra, một thứ ta cần biết nữa là service name, vì phải biết service name thì client mới connect đến chính xác được. Trace code ngược lại từ lúc init enviroment, ta thấy được hàm <code>Veeam.Backup.MountService.CMountService#OnStart()</code> sẽ được gọi khi Mount Service chạy.
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/30.png"></p>
+<p>bởi vì class <code>Veeam.Backup.MountService.CMountService</code> được implement từ <code>System.ServiceProcess.ServiceBase</code>
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/31.png"></p>
+<p>Theo document:
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/32.png"></p>
+<p>Tại hàm <code>Veeam.Backup.MountServiceLib.CRestoreServiceRemotingApiRegistration#RegisterRemotingTypes()</code> sẽ thực hiện đăng ký một .NET Remoting service
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/33.png"></p>
+<p>Và cuối cùng thì mình cũng thấy được service name được define tại <code>Veeam.Backup.MountServiceLib.CMountServiceImpl#StartLeasing()</code> có tên là <code>RestoreService</code>
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/29.png"></p>
+<p>Như phân tích từ bước đầu, sink ta cần reach đến là chức năng deserialize response ở .NET Remoting Client là phía Veeam Server. Thì mình nghĩ rất có thể Mount Service ở phía Veeam sẽ gọi đến Mount Service ở một host khác và chức năng có liên quan đến restore.</p>
+<p>Mình đã suy nghĩ rất nhiều về điều này, đã thực hiện sử dụng một số chức năng như thực hiện backup một volume trên Windows Server đã join domain và thực hiện restore, và 7749 lần thử khác nhưng vẫn không reach được tới sink deserialize. Nhưng nghĩ lại thì việc backup không yêu cầu phải add server đó vào trước (cái mà issue detail yêu cầu), nên mình đã suy nghĩ theo một hướng khác, có thể liên quan đến sử dụng một máy Windows đã join domain làm một <code>Storage Infrastructure</code> để chứa các bản backup,
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/34.png"></p>
+<p>sau đó, thực hiện backup một volume trên máy bất kỳ và lưu trên máy Windows Storage đó
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/35.png"></p>
+<p>sau đó thực hiện restore lại với backup data được lấy từ remote storage, và quá trình này cũng phải đòi hỏi authenticate đến server storage (đặc biệt là nếu đã join domain).</p>
+<p>Lý thuyết là vậy nhưng ta phải cần một số yếu tố nữa để chắc chắn, lúc này thì mình chuyển qua tìm nơi client gọi lên server, search với keyword cơ bản như <code>RestoreService</code>. Tại sao mình search như vậy? Là tại vì như đã nói thì client muốn kết nối đến server thì ngoài phải biết ip + port ra  còn phải biết service name, nên nếu có gọi đâu đó trong Mount Service thì chắc chắn sẽ khai báo đâu đó trong đây.</p>
+<p>Rất may mắn là phán đoán của mình chính xác, tại constructor của class <code>Veeam.Backup.Interaction.MountService.CVeeamRestoreServiceProxy</code> tạo một TCP url có chứa <code>RestoreService</code> service name
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/36.png"></p>
+<p>Tại đây, ta phân tích thấy rằng:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-csharp" data-lang="csharp"><span class="line"><span class="cl"><span class="kd">private</span> <span class="n">CVeeamRestoreServiceProxy</span><span class="p">(</span><span class="n">CConnection</span> <span class="n">connection</span><span class="p">,</span> <span class="kt">string</span> <span class="n">serviceUri</span><span class="p">,</span> <span class="kt">string</span> <span class="n">channelName</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">CVeeamRestoreServiceProxy</span> <span class="p">&lt;&gt;</span><span class="m">4__</span><span class="k">this</span> <span class="p">=</span> <span class="k">this</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">this</span><span class="p">.</span><span class="n">_connection</span> <span class="p">=</span> <span class="n">connection</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="k">this</span><span class="p">.</span><span class="n">_creator</span> <span class="p">=</span> <span class="k">new</span> <span class="n">CMbrCreator</span><span class="p">&lt;</span><span class="n">IVeeamRestoreService</span><span class="p">&gt;(</span><span class="k">delegate</span>
+</span></span><span class="line"><span class="cl">    <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="kt">string</span> <span class="n">saobjectURL</span> <span class="p">=</span> <span class="n">RemotingHelper</span><span class="p">.</span><span class="n">GetSAObjectURL</span><span class="p">(</span><span class="s">&#34;tcp&#34;</span><span class="p">,</span> <span class="p">&lt;&gt;</span><span class="m">4__</span><span class="k">this</span><span class="p">.</span><span class="n">_connection</span><span class="p">.</span><span class="n">HostName</span><span class="p">,</span> <span class="p">&lt;&gt;</span><span class="m">4__</span><span class="k">this</span><span class="p">.</span><span class="n">_connection</span><span class="p">.</span><span class="n">HostPort</span><span class="p">,</span> <span class="n">serviceUri</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="kt">string</span> <span class="n">spn</span> <span class="p">=</span> <span class="n">SKerberosHelper</span><span class="p">.</span><span class="n">GetSpn</span><span class="p">(&lt;&gt;</span><span class="m">4__</span><span class="k">this</span><span class="p">.</span><span class="n">_connection</span><span class="p">.</span><span class="n">HostName</span><span class="p">,</span> <span class="n">SKerberosHelper</span><span class="p">.</span><span class="n">SPN_SERVICE_CLASS_Mount</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="k">return</span> <span class="p">(</span><span class="n">IVeeamRestoreService</span><span class="p">)</span><span class="k">new</span> <span class="n">CSecuredProxy</span><span class="p">(</span><span class="k">typeof</span><span class="p">(</span><span class="n">IVeeamRestoreService</span><span class="p">),</span> <span class="n">saobjectURL</span><span class="p">,</span> <span class="p">(&lt;&gt;</span><span class="m">4__</span><span class="k">this</span><span class="p">.</span><span class="n">_connection</span><span class="p">.</span><span class="n">Creds</span> <span class="p">==</span> <span class="kc">null</span><span class="p">)</span> <span class="p">?</span> <span class="kc">null</span> <span class="p">:</span> <span class="k">new</span> <span class="n">CNetworkCredential</span><span class="p">(&lt;&gt;</span><span class="m">4__</span><span class="k">this</span><span class="p">.</span><span class="n">_connection</span><span class="p">.</span><span class="n">Creds</span><span class="p">),</span> <span class="n">spn</span><span class="p">,</span> <span class="p">&lt;&gt;</span><span class="m">4__</span><span class="k">this</span><span class="p">.</span><span class="n">_connection</span><span class="p">.</span><span class="n">RemoteVersion</span><span class="p">,</span> <span class="kc">null</span><span class="p">,</span> <span class="kc">null</span><span class="p">,</span> <span class="n">channelName</span><span class="p">).</span><span class="n">GetTransparentProxy</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="p">});</span>
+</span></span><span class="line"><span class="cl">    <span class="k">this</span><span class="p">.</span><span class="n">_connection</span><span class="p">.</span><span class="n">MbrCreators</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="n">_creator</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>nếu như <code>&lt;&gt;4__this._connection.Creds</code> không phải  <code>null</code> thì sẽ sử dụng <code>CNetworkCredential</code> để authen qua network stream, đi sâu vào quan sát class <code>Veeam.Common.Remoting.CNetworkCredential</code>, nếu như không có thông tin domain thì sẽ throw exception
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/37.png"></p>
+<p>và các bước tách username với domain thực hiện tại class <code>Veeam.Backup.Common.CCredentials</code>
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/38.png"></p>
+<p>=&gt; đây có thể là câu trả lời cho <code>Backup infrastructure servers that are not domain-joined are not impacted by this vulnerability.</code></p>
+<p>Do đó, phần còn lại của mình hiện tại là ở Mount Service tìm ra chức năng gọi đến nó, như các bạn có thể thấy rằng đây là một ví dụ khá đẹp:
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/39.png"></p>
+<p>nhìn sơ qua, thì thấy chức năng Log Exporter rất có tiềm năng, sau đó mình đã đặt break-point và search google + chatgpt đủ kiểu, thì chỉ thấy được một chức năng liên quan đến log export là tại <code>Help &gt; Support Information &gt; Export Logs</code>
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/40.png"></p>
+<p>nhưng cứ export log mãi trên máy Windows đã join domain mà không thấy break-point hit😢. Bất lực nên mình quyết định kiểm tra các nhánh Find Usage còn lại.</p>
+<p>Lại thêm một chức năng tìm năng khác chính là <code>ScanForViruses</code> và <code>ScanWithYara</code>
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/41.png"></p>
+<p>và mình nhận ra hai chức năng này mình đã gặp nó ở đâu đó rồi thì phải :)) và cụ thể là ở chức năng <code>Restore</code> này
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/42.png"></p>
+<p>Để kiểm tra điều này, mình thực hiện đặt break-point tại constructor của class <code>Veeam.Backup.Interaction.MountService.CVeeamRestoreServiceProxy</code>,
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/43.png"></p>
+<p>sau đó thực hiện restore kèm theo chức năng scan content với antivirus để debug, nhưng đến khi việc restore hoàn tất mà bp vẫn không hit??? :((</p>
+<p>Từ đó mình đặt ra giả thuyết rằng có thể chức năng này không được gọi bởi process hiện tại là Mount Service và đó cũng là lý do break-point không hit được! Sau đó, mình đã tiến hành xem xét các process còn lại, kèm theo một số thông tin từ ChatGPT thì nhận thấy rằng rất có khả năng chức năng này được gọi bởi process <code>Veeam.Backup.Service.exe</code>, thực hiện tương tự như bước trên thì <strong>BOOOOOM</strong>!
+<img loading="lazy" src="/images/story-about-veeam-and-dotnet-remoting/44.png"></p>
+<p>Callstack:</p>
+<pre tabindex="0"><code>Veeam.Common.Remoting.dll!Veeam.Common.Remoting.RemotingHelper.GetSAObjectURL(string proto, string machine, int port, string uri) (IL=0x0000, Native=0x00007FFC05D77DE0+0x16)
+Veeam.Backup.Interaction.MountService.dll!Veeam.Backup.Interaction.MountService.CVeeamRestoreServiceProxy.&lt;&gt;c__DisplayClass3_0.&lt;.ctor&gt;b__0() (IL≈0x0000, Native=0x00007FFC05D77BF0+0x6A)
+Veeam.Common.Remoting.dll!Veeam.Common.Remoting.CMbrCreator&lt;Veeam.Backup.Interaction.MountService.IVeeamRestoreService&gt;.CMbrCreator(Veeam.Common.Remoting.CreateMbrDelegate&lt;Veeam.Backup.Interaction.MountService.IVeeamRestoreService&gt; dlgCreate) (IL≈0x0018, Native=0x00007FFC0571ABF0+0x3D)
+Veeam.Backup.Interaction.MountService.dll!Veeam.Backup.Interaction.MountService.CVeeamRestoreServiceProxy.CVeeamRestoreServiceProxy(Veeam.Backup.Interaction.MountService.CConnection connection, string serviceUri, string channelName) (IL=0x003A, Native=0x00007FFC05D77AF0+0xA4)
+Veeam.Backup.Interaction.MountService.dll!Veeam.Backup.Interaction.MountService.CRemoteRestoreProxyClient.CRemoteRestoreProxyClient(Veeam.Backup.Model.CClientSessionClientInfo clientInfo, Veeam.Backup.Interaction.MountService.CConnection connection) (IL=0x0092, Native=0x00007FFC05D77840+0x1E6)
+Veeam.Backup.Interaction.MountService.dll!Veeam.Backup.Interaction.MountService.CRemoteRestoreProxyClient.ConnectTo(Veeam.Backup.Model.CClientSessionClientInfo clientInfo, string ipOrDnsName, int port, Veeam.Backup.Common.CCredentials credentialsOrNull) (IL≈0x0034, Native=0x00007FFC05D77180+0x11D)
+Veeam.Backup.ServiceLib.dll!Veeam.Backup.ServiceLib.CRestoreManagementService.CreateRemoteRestoreProxyClient(Veeam.Backup.Model.CRestoreProxyBinding proxyBinding) (IL=epilog, Native=0x00007FFC05D76FD0+0xC1)
+Veeam.Backup.ServiceLib.dll!Veeam.Backup.ServiceLib.CRestoreManagementService.FindFirstAvailableAntivirus(Veeam.Backup.Model.CRestoreProxyBinding proxyBinding) (IL=prolog, Native=0x00007FFC05D76F10+0x19)
+Veeam.Backup.ServiceLib.dll!Veeam.Backup.ServiceLib.CRestoreManagementService.IsAntivirusExists(Veeam.Backup.Model.CRestoreProxyBinding proxyBinding) (IL≈0x0000, Native=0x00007FFC05D76EE0+0x9)
+...
+</code></pre><p>Yeah, sink đã reach và vấn đề đau đầu nhất có vẻ đã giải quyết xong, giờ thì chỉ còn việc build lại malicious server để exploit nữa là xong!</p>
+<h3 id="exploit">#Exploit<a hidden class="anchor" aria-hidden="true" href="#exploit">#</a></h3>
+<p>Ý tưởng là chỉ cần tạo một TcpServerChannel trả về một .NET Remoting Message trong đó body là deserialize payload. Trong đó, server đảm bảo rằng:</p>
+<ul>
+<li>Port: 6170</li>
+<li>Authentication: required</li>
+<li>Channel Name: rstcp</li>
+<li>Service Name: RestoreService</li>
+</ul>
+<script src="https://gist.github.com/nhienit2010/9ab201df36b03c099670e90f94d6252c.js"></script>
+<p>Có thể các bạn thắc mắc một số chổ trên poc, nhưng vì để tránh post dài nên các bạn có thể tự tìm hiểu qua các tài liệu mình đính kèm trên bài này nhé!</p>
+<h3 id="poc">#PoC<a hidden class="anchor" aria-hidden="true" href="#poc">#</a></h3>
+<div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
+      <iframe allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" loading="eager" referrerpolicy="strict-origin-when-cross-origin" src="https://www.youtube.com/embed/HlfDOg8DSRQ?autoplay=0&amp;controls=1&amp;end=0&amp;loop=0&amp;mute=0&amp;start=0" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border:0;" title="YouTube video"></iframe>
+    </div>
+
+<h3 id="references">#References<a hidden class="anchor" aria-hidden="true" href="#references">#</a></h3>
+<ul>
+<li><a href="https://www.veeam.com/kb4771">https://www.veeam.com/kb4771</a></li>
+<li><a href="https://helpcenter.veeam.com/docs/backup/vsphere/components.html?ver=120">https://helpcenter.veeam.com/docs/backup/vsphere/components.html?ver=120</a></li>
+<li><a href="https://helpcenter.veeam.com/docs/backup/vsphere/add_windows_server.html?ver=120">https://helpcenter.veeam.com/docs/backup/vsphere/add_windows_server.html?ver=120</a></li>
+</ul>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="https://nhienit2010.github.io/tags/research/">Research</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="next" href="https://nhienit2010.github.io/posts/me_sqli_to_rce/">
+    <span class="title">Next »</span>
+    <br>
+    <span>ManageEngine Adaudit Plus – From SQLi to RCE</span>
+  </a>
+</nav>
+
+
+
+  </footer><div id="disqus_thread"></div>
+<script>
+(function() {
+var d = document, s = d.createElement('script');
+s.src = 'https://nhienit.disqus.com/embed.js';
+s.setAttribute('data-timestamp', +new Date());
+(d.head || d.body).appendChild(s);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>©nhienit</span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu');
+    if (menu) {
+        
+        const scrollPosition = localStorage.getItem("menu-scroll-position");
+        if (scrollPosition) {
+            menu.scrollLeft = parseInt(scrollPosition, 10);
+        }
+        
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        const html = document.querySelector("html");
+        if (html.dataset.theme === "dark") {
+            html.dataset.theme = 'light';
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            html.dataset.theme = 'dark';
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>
