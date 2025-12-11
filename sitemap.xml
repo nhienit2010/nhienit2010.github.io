@@ -2,34 +2,31 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>https://nhienit2010.github.io/categories/</loc>
-    <lastmod>2025-11-28T21:34:54+07:00</lastmod>
-  </url><url>
-    <loc>https://nhienit2010.github.io/posts/story-about-veeam-and-dotnet-remoting/</loc>
-    <lastmod>2025-11-28T21:34:54+07:00</lastmod>
-  </url><url>
     <loc>https://nhienit2010.github.io/</loc>
     <lastmod>2025-11-28T21:34:54+07:00</lastmod>
   </url><url>
     <loc>https://nhienit2010.github.io/posts/</loc>
     <lastmod>2025-11-28T21:34:54+07:00</lastmod>
   </url><url>
-    <loc>https://nhienit2010.github.io/categories/research/</loc>
-    <lastmod>2025-11-28T21:34:54+07:00</lastmod>
-  </url><url>
-    <loc>https://nhienit2010.github.io/series/research/</loc>
-    <lastmod>2025-11-28T21:34:54+07:00</lastmod>
-  </url><url>
-    <loc>https://nhienit2010.github.io/tags/research/</loc>
-    <lastmod>2025-11-28T21:34:54+07:00</lastmod>
-  </url><url>
-    <loc>https://nhienit2010.github.io/series/</loc>
-    <lastmod>2025-11-28T21:34:54+07:00</lastmod>
-  </url><url>
-    <loc>https://nhienit2010.github.io/tags/</loc>
-    <lastmod>2025-11-28T21:34:54+07:00</lastmod>
+    <loc>https://nhienit2010.github.io/categories/</loc>
+    <lastmod>2024-10-02T21:05:44+07:00</lastmod>
   </url><url>
     <loc>https://nhienit2010.github.io/posts/me_sqli_to_rce/</loc>
+    <lastmod>2024-10-02T21:05:44+07:00</lastmod>
+  </url><url>
+    <loc>https://nhienit2010.github.io/categories/research/</loc>
+    <lastmod>2024-10-02T21:05:44+07:00</lastmod>
+  </url><url>
+    <loc>https://nhienit2010.github.io/series/research/</loc>
+    <lastmod>2024-10-02T21:05:44+07:00</lastmod>
+  </url><url>
+    <loc>https://nhienit2010.github.io/tags/research/</loc>
+    <lastmod>2024-10-02T21:05:44+07:00</lastmod>
+  </url><url>
+    <loc>https://nhienit2010.github.io/series/</loc>
+    <lastmod>2024-10-02T21:05:44+07:00</lastmod>
+  </url><url>
+    <loc>https://nhienit2010.github.io/tags/</loc>
     <lastmod>2024-10-02T21:05:44+07:00</lastmod>
   </url><url>
     <loc>https://nhienit2010.github.io/posts/cve-2024-5443-path-traversal-to-rce/</loc>
