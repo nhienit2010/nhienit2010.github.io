@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto" data-theme="auto">
+
+<head><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>CVE-2025-49538 – Adobe ColdFusion Auth Bypass XXE | nhienit</title>
+<meta name="keywords" content="research">
+<meta name="description" content="Adobe Coldfusion Auth Bypass XXE">
+<meta name="author" content="nhienit">
+<link rel="canonical" href="https://nhienit2010.github.io/posts/adobe-coldfusion-auth-bypass-xxe/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.343cc480b9ffc8f04ccbe5e968ad674880cab773ec19905e93033065c1e7a804.css" integrity="sha256-NDzEgLn/yPBMy&#43;XpaK1nSIDKt3PsGZBekwMwZcHnqAQ=" rel="preload stylesheet" as="style">
+<link rel="icon" href="https://nhienit2010.github.io/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="https://nhienit2010.github.io/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="https://nhienit2010.github.io/favicon-32x32.png">
+<link rel="apple-touch-icon" href="https://nhienit2010.github.io/apple-touch-icon.png">
+<link rel="mask-icon" href="https://nhienit2010.github.io/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="https://nhienit2010.github.io/posts/adobe-coldfusion-auth-bypass-xxe/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+                color-scheme: dark;
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .toc {
+                background: var(--entry);
+            }
+        }
+
+        @media (prefers-color-scheme: light) {
+            .list::-webkit-scrollbar-thumb {
+                border-color: var(--code-bg);
+            }
+        }
+
+    </style>
+</noscript>
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else if (localStorage.getItem("pref-theme") === "light") {
+       document.querySelector("html").dataset.theme = 'light';
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.querySelector("html").dataset.theme = 'dark';
+    } else {
+        document.querySelector("html").dataset.theme = 'light';
+    }
+
+</script><meta property="og:url" content="https://nhienit2010.github.io/posts/adobe-coldfusion-auth-bypass-xxe/">
+  <meta property="og:site_name" content="nhienit">
+  <meta property="og:title" content="CVE-2025-49538 – Adobe ColdFusion Auth Bypass XXE">
+  <meta property="og:description" content="Adobe Coldfusion Auth Bypass XXE">
+  <meta property="og:locale" content="en">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2026-11-20T10:33:38+07:00">
+    <meta property="article:modified_time" content="2026-11-20T10:33:38+07:00">
+    <meta property="article:tag" content="Research">
+      <meta property="og:image" content="https://nhienit2010.github.io/images/papermod-cover.png">
+      <meta property="og:see_also" content="https://nhienit2010.github.io/posts/wp2shell-some-notes-about-preauth-rce-on-wordpress/">
+      <meta property="og:see_also" content="https://nhienit2010.github.io/posts/me_sqli_to_rce/">
+      <meta property="og:see_also" content="https://nhienit2010.github.io/posts/cve-2024-5443-path-traversal-to-rce/">
+      <meta property="og:see_also" content="https://nhienit2010.github.io/posts/cve-2022-3133-drawio-xss-to-rce/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://nhienit2010.github.io/images/papermod-cover.png">
+<meta name="twitter:title" content="CVE-2025-49538 – Adobe ColdFusion Auth Bypass XXE">
+<meta name="twitter:description" content="Adobe Coldfusion Auth Bypass XXE">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "https://nhienit2010.github.io/posts/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "CVE-2025-49538 – Adobe ColdFusion Auth Bypass XXE",
+      "item": "https://nhienit2010.github.io/posts/adobe-coldfusion-auth-bypass-xxe/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "CVE-2025-49538 – Adobe ColdFusion Auth Bypass XXE",
+  "name": "CVE-2025-49538 – Adobe ColdFusion Auth Bypass XXE",
+  "description": "Adobe Coldfusion Auth Bypass XXE",
+  "keywords": [
+    "research"
+  ],
+  "articleBody": " Thật ra bài viết này mình đã soạn từ tháng 9 năm 2025, nhưng không nhớ là tại sao lại lưu draft cho đến bây giờ nữa (chắc có lẽ là đợi vendor patch lâu quá nên quên🥲). Dù sao cũng đã viết rồi thì cũng nên đăng vậy.\nMình bắt tay vào nghiên cứu về Adobe ColdFusion trong khi tìm thứ gì đó mới mẻ để nghiên cứu, do một phần là Adobe cũng launch một Bounty Program trên Hackerone. Trong đống scope chỉ có mỗi ColdFusion là có mã nguồn để audit và được trao bounty, cũng không biết là vô tình hay sắp đặt nữa. Nên nếu như may mắn thì kiếm được chút đỉnh coi như bù công sức bỏ ra, còn không thì coi như có chút kinh nghiệm vậy :D\n#Về Adobe ColdFusion Adobe ColdFusion là một nền tảng phát triển ứng dụng web và máy chủ ứng dụng thương mại được phát triển bởi Adobe. ColdFusion sử dụng ngôn ngữ lập trình ColdFusion Markup Language (CFML), hỗ trợ cả cú pháp dạng thẻ (tag-based) và dạng script, giúp xây dựng các ứng dụng web động, API và hệ thống doanh nghiệp. Nền tảng này cung cấp nhiều tính năng tích hợp như kết nối cơ sở dữ liệu, xử lý tệp tin, tạo tài liệu và tương tác với các dịch vụ bên ngoài. Ngoài ra, ColdFusion còn có ColdFusion Administrator, một giao diện quản trị trên nền web cho phép cấu hình và quản lý máy chủ.\n#Setup môi trường Cũng không biết vì sao mình lại chọn Adobe ColdFusion 2021 làm điểm khởi đầu nhưng có lẽ là do trong quá trình mình reproduce lại các bug cũ đã được public trước đó thì mình đã chọn version này nên trong lúc reproduce các CVE cũ xong thì cũng sẵn tiện update lên bản vá mới nhất (lúc này là ColdFusion 2021 Update 19) rồi ngâm cứu tiếp luôn. Chi tiết về phần setup đã được hướng dẫn tại đây: https://hackerone.com/adobe#user-content-coldfusion-test-plan\n#Overview Sau khi phân tích các CVE cũ thì idea ban đầu của mình là bypass bản vá và check các variant của chúng xem còn tồn tại ở chổ nào nữa không, nhưng có vẻ như thời điểm đó chưa có nhiều kết quả khả quan (lúc này mình chưa dùng AI 🥲).\nNên mình đã chuyển sang một hướng khác là check xem còn có service lân cận nào chạy song song với service chính ở port 80/443 hay không, vì rất có thể đây là điểm mà đôi khi các researcher khác bỏ qua trong quá trình research. Lúc này search vội các file web.xml (nôm na là file cấu hình dịch vụ web) để tìm các attack surface khác, tại ./cfusion/jetty/webapps/ mình thấy có hai ứng dụng khác là solr và PDFgServlet. PDFgServlet nghe có vẻ khá là thú vị nên mình tiếp tục đào sâu vào nó, và web.xml có nội dung như sau: Bên dưới là toàn bộ mã nguồn xử lý của PDFgServlet, tất cả đã được compile thành các file Java Class, và hoàn toàn có thể load chúng vào IntelliJ hoặc Jadx để đọc. Để tương tác với service này thì trên Admin Portal tại Data \u0026 Services ta thấy có tab PDF Service nghe giống giống với thứ mà ta cần tìm, thì PDF Service mặc định sẽ chạy ở port 8993 hoặc 8997. Không những thế, các service khác cũng cùng chạy ở port này như là: solr và AdminServlet và để reach tới PDFgServlet chỉ cần gửi request đến http://127.0.0.1:8993/PDFgServlet/ là được. #The bug Mã nguồn ở PDF Service hiện tại cũng không quá phức tạp, class xử lý các HTTP request chính là coldfusion.pdf.service.remote. Ngồi review code một lúc thì mình phát hiện có một bug XXE tại hàm CFPDFGRemoteServiceManager::checkPDFDestPath() do lấy giá trị từ tham số pdfSettingData đặt trực tiếp vào DocumentBuilderFactory để parse XML mà không set feature để tắt External Entities:\npublic boolean checkPDFDestPath(String pdfSettingsData) throws PDFConversionException { DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance(); try { DocumentBuilder db = dbf.newDocumentBuilder(); Document dom = db.parse(new InputSource(new ByteArrayInputStream(pdfSettingsData.getBytes()))); NodeList settingNodes = dom.getElementsByTagName(\"Setting\"); for (int i = 0; i \u003c settingNodes.getLength(); i++) { // [...] } return false; } catch (Exception ex) { throw new PDFConversionException(400, ex.getLocalizedMessage()); } } Thực hiện trace back, ta có call-stack như sau:\nCFPDFGRemoteServiceManager::checkPDFDestPath() -\u003e CFPDFGRemoteServiceManager::convertToPDF() -\u003e ConversionTask::run() Hàm ConversionTask::run() được định nghĩa như sau:\npublic class ConversionTask implements Runnable { private String conversionData; private HttpServletResponse response; // [...] private long timeout; private CFPDFGService service; // [...] public void run() { try { try { if (this.service == null) { throw new PDFConversionException(429, \"NO_PDFGSERVICE_FREE\"); } this.success = CFPDFgWaitingQManager.this.srvMgr.convertToPDF(this.conversionData, this.response, this.service, this.timeout); // [...] } catch (PDFConversionException e) { // [...] } } catch (Throwable th) { // [...] } } // [...] Ta thấy rằng, class ConversionTask được implement từ interface Runnable, hiểu nôm na là class này định nghĩa một tác vụ được thực thi trong một thread riêng biệt hoặc khi có một event nào đó được trigger.\nTrong class này, this.conversionData là một property của ConversationTask (thứ mà ta muốn control), nên tiếp theo ta phải tìm nơi tạo ra instance của class này và xem ta có thể control được conversionData hay không.\nThực hiện Find Usage, có 1 kết quả duy nhất cho thấy rằng instance của ConversationTask được tạo ở CFPDFgWaitingQManager::addTask(): Tiếp tục trace back, thì nó được gọi tại hàm PDFGServlet::doConvert() và cuối cùng, được trigger qua POST request:\nprotected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException { // [...] String action = req.getParameter(ACTION); // [...] String serverId = req.getParameter(SERVERID); // [...] if (action.equals(CONVERT)) { doConvert(req, resp); return; } // [...] } Tại hàm PDFGServlet::doConvert(), ta thấy được giá trị conversion_data được lấy từ param conversionrequest ở request body (tại [2]) và điều đáng nói hơn là có một bước authentication qua hàm this.serviceMgr.validateAuthToken() (tại [1]) trước khi nhảy vào sink XXE tại [3]:\nprivate void doConvert(HttpServletRequest req, HttpServletResponse resp) throws IOException { String authToken = req.getParameter(AUTHTOKEN); String serverId = req.getParameter(SERVERID); try { try { this.serviceMgr.validateAuthToken(serverId, authToken); // [1] String conversion_data = req.getParameter(CONVERSION_REQUEST); // [2] // [...] try { try { // [...] CFPDFgWaitingQManager.ConversionTask task = waitingQMgr.addTask(conversion_data, resp, waitingQ_timeout); // [3] synchronized (task) { task.wait(); } if (!task.isConversionSuccess()) { resp.sendError(task.getErrorCode(), task.getErrorMsg()); } // [...] } Hàm validateAuthToken() nhận vào 2 tham số là serverId và authToken, những giá trị này ta hoàn toàn kiểm soát được. Tiếp tục đào sâu vào, ta thấy code gọi lần lượt đến CFPDFgCryptoHelper::authenticateToken():\npublic static void authenticateToken(String serverId, String authtoken) throws PDFgCryptoException { String sessionId = sessionIdMap.get(serverId); // [...] try { PDFgCryptoUtils.decrypt(authtoken, sessionId); // [4] } catch (Exception e) { throw new PDFgCryptoException(); } } Tại [4], hàm PDFgCryptoUtils.decrypt() thực hiện decode base64 encryptedPassword (hay authtoken) và sử dụng seedval (giá trị của sessionId được mapping với serverId) để tạo AES key để tiến hành decrypt với mode AES/CBC/PKCS5Padding:\npublic static String decrypt(String encryptedPassword, String seedval) throws PDFgCryptoException { try { byte[] decoded = binaryDecode(encryptedPassword, BASEENCODING); byte[] decrypted = decrypt(decoded, generateAesKey(seedval), AES_CBC_PKCS5_ALGORITHM); return new String(decrypted, CHARSET); } catch (UnsupportedEncodingException e) { throw new PDFgCryptoException(); } } Hàm generateAesKey() tạo AES key từ seedval như sau và ta biết được AES Key chỉ có 16 ký tự :\nprivate static String generateAesKey(String seed) { byte[] seedBytes; if (seed == null) { return null; } if (seed != null \u0026\u0026 seed.length() == 0) { return null; } try { seedBytes = seed.getBytes(CHARSET); } catch (UnsupportedEncodingException e) { seedBytes = seed.getBytes(); } int seedLen = seedBytes.length; byte[] seedBytes2 = Arrays.copyOf(seedBytes, 16); if (seedLen \u003c 16) { for (int i = seedLen; i \u003c 16; i++) { seedBytes2[i] = PADCHAR; } } SecretKey secretKey = new SecretKeySpec(seedBytes2, AES); return Base64Encoder.encode(secretKey.getEncoded()); } Hmm… nghĩa là ta cần phải biết seedval và thực hiện tạo một valid token để xác thực? Nhưng có hai thứ mà ta chưa biết là Server Id và Seed Value lấy từ đâu ra, back lại về PDFGServlet::doPost(), ta thấy có một action register cho phép tạo một Session ID map với severId mà ta truyền vào:\nprotected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException { // [...] String action = req.getParameter(ACTION); // [...] String serverId = req.getParameter(SERVERID); // [...] if (action.equals(REGISTER)) { try { byte[] sessionId = this.serviceMgr.generateSessionId(serverId); if (sessionId == null) { // [...] } else { ServletOutputStream output = resp.getOutputStream(); output.write(sessionId); return; } } catch (PDFgCryptoException e) { // [...] } } // [...] } Hàm CFPDFGServiceManager::generateSessionId() gọi tiếp hàm CFPDFgCryptoHelper.generateSessionId() và ở đây, sẽ tạo một giá trị ngẫu nhiên gán vào biến sessionId và put nó vào sessionIdMap với key name là serverId , sau đó trả về giá trị seed ở phần response dưới dạng chuỗi được encrypt bằng publicKey:\npublic static byte[] generateSessionId(String serverId) throws PDFgCryptoException { long sessionId = PDFgCryptoUtils.generateRandom(); sessionIdMap.put(serverId, String.valueOf(sessionId)); return PDFgCryptoUtils.rsaEncrypt(getBytes(Long.valueOf(sessionId)), publicKey); } Giá trị publicKey này được init ngay từ ban đầu được lấy từ file C:\\ColdFusion2021\\cfusion\\jetty\\webapps\\PDFgServlet\\Resources\\bin và hàm PDFgCryptoUtils::createPublicKeyObj() chịu trách nhiệm tạo ra publicKey object:\npublic static PublicKey createPublicKeyObj(BigInteger pKeyMod, BigInteger pKeyExp) throws PDFgCryptoException { try { KeyFactory fact = KeyFactory.getInstance(RSA_GENERATOR_ALGORITHM, \"BC\"); RSAPublicKeySpec keySpec = new RSAPublicKeySpec(pKeyMod, pKeyExp); return fact.generatePublic(keySpec); } catch (NoSuchAlgorithmException e) { throw new PDFgCryptoException(); } catch (NoSuchProviderException e2) { throw new PDFgCryptoException(); } catch (InvalidKeySpecException e3) { throw new PDFgCryptoException(); } } tất nhiên là có tạo publicKey thì phải có tạo privateKey, nhưng vấn đề là không có hàm nào gọi hàm createPrivateKeyObj() nên đồng nghĩa với không có privateKey nào được sinh ra 🥲 Vậy nên cho dù có tạo được sessionId từ serverId thì cũng không thể decrypt message để lấy được giá trị của sessionId (hay seedval cho hàm PDFgCryptoUtils.decrypt()) để tạo authentication token: Để thử nghiệm thì mình cài đặt trên hai máy ảo khác nhau và thấy rằng các file public key đều giống nhau, vậy nên nếu có thể leak được private key thì ta có thể tạo authentication token để exploit trên nhiều server khác! Nhưng idea đó cũng nhanh chóng vụt tắt vì nếu có lưu file private key trên server thì ta cũng phải tìm một bug local file read hoặc chức năng nào đó để lấy file private key về để giải mã.\nTrace back về hàm CFPDFgCryptoHelper::authenticateToken(), thứ khiến mình để ý là ở đây (tại [4]) chỉ quan tâm là quá trình decrypt authtoken có lỗi hay không, chứ không quan tâm rằng giá trị sau khi decrypt có phải là một giá trị gì đó hợp lệ hay không (ví dụ như phải là chuỗi admin hay phải chứa thông tin user gì đó chẳng hạn, …) Mặc dù mình không rành mấy thuật toán mã hóa này lắm, nhưng về cơ bản, khi giải mã AES, ciphertext sẽ được xử lý theo từng block có kích thước cố định là 16 bytes. Tùy cấu hình, thuật toán có thể sử dụng encryption key với kích thước 16, 24 hoặc 32 bytes. Nhưng may mắn sau nhiều lần fuzzing, thì cũng có thể bypass được authentication bằng cách gửi lên 16 bytes null dưới dạng cipher text:\n\u003e\u003e\u003e import base64 \u003e\u003e\u003e base64.b64encode(b\"\\x00\" * 16) b'AAAAAAAAAAAAAAAAAAAAAA==' Cụ thể là decrypt authToken diễn ra thành công, và kết quả trả về là rỗng 😛 Đào sâu vào luồng giải mã tại PDFgCryptoUtils::decrypt(String encryptedPassword, String seedval), với thuật toán AES/CBC/PKCS5Padding và AES Key gồm 16 ký tự, sau đó gọi tiếp đến một hàm decrypt() khác với CRYPT_MODE = 2:\nprivate static byte[] decrypt(byte[] bytes, String key, String algorithm) throws PDFgCryptoException { try { byte[] decrypted = processCipherWork(null, bytes, key, algorithm, 2, null, 0); return decrypted; } catch (NoSuchAlgorithmException e) { throw new PDFgCryptoException(); } } phân tích vào bên trong PDFgCryptoUtils::processCipherWork() như sau:\nprivate static byte[] processCipherWork(byte[] original, byte[] decoded, String key, String algorithm, int CRYPT_MODE, byte[] prefix, int iter) throws NoSuchAlgorithmException, PDFgCryptoException { byte[] enc; int offset = 0; try { int slshIndx = algorithm.indexOf(47); String algName = algorithm; boolean feedbackMode = false; if (slshIndx != -1) { algName = algorithm.substring(0, slshIndx); String mode = algorithm.substring(slshIndx + 1); if (!mode.startsWith(\"ECB\")) { // [5] feedbackMode = true; } } Cipher cipher = Cipher.getInstance(algorithm); SecretKey recreatedSecretKey = retrieveSecretKey(key, algName); if (feedbackMode) { if (prefix == null) { prefix = new byte[cipher.getBlockSize()]; // [6] offset = prefix.length; if (CRYPT_MODE == 1) { // [...] } else { System.arraycopy(decoded, 0, prefix, 0, offset); // [7] } } IvParameterSpec ivParamSpec = new IvParameterSpec(prefix); // [8] cipher.init(CRYPT_MODE, recreatedSecretKey, ivParamSpec); } else { // [...] } if (CRYPT_MODE == 2) { enc = cipher.doFinal(decoded, offset, decoded.length - offset); // [9] } else { // [...] } return enc; } // [...] } Vì chương trình đang dùng mode CBC nên thõa mãn điều kiện tại [5] nên feedbackMode = true. Mặc định, cipher.getBlockSize() = 16 nên prefix cũng có độ dài là 16 byte (tại [6]) và offset = 16, chương trình sẽ cắt 16 bytes đầu của ciphertext (biến decoded) đưa vào biến prefix (tại [7]). Sau đó tại [8], thì prefix được sử dụng làm IV cho thuật toán. Cuối cùng tại [9], gọi cipher.doFinal() để thực hiện quá trình giải mã, với cipher được lấy từ 16 byte còn lại của decoded, vì 16 bytes đầu dùng làm IV mà input chỉ có 16 bytes nên length của cipher còn lại là 0. Tóm tắt như sau:\nenc = com.sun.crypto.provider.CipherCore.doFinal(decoded, 16, 0); Hàm com.sun.crypto.provider.CipherCore::doFinal(byte[] input, int inputOffset, int inputLen) như sau:\nbyte[] doFinal(byte[] input, int inputOffset, int inputLen) throws IllegalBlockSizeException, BadPaddingException { try { byte[] output = new byte[this.getOutputSizeByOperation(inputLen, true)]; // [10] byte[] finalBuf = this.prepareInputBuffer(input, inputOffset, inputLen, output, 0); // [11] int finalOffset = finalBuf == input ? inputOffset : 0; // [12] int finalBufLen = finalBuf == input ? inputLen : finalBuf.length; // [13] int outLen = this.fillOutputBuffer(finalBuf, finalOffset, output, 0, finalBufLen, input); // [14] this.endDoFinal(); if (outLen \u003c output.length) { // [15] byte[] copy = Arrays.copyOf(output, outLen); if (this.decrypting) { Arrays.fill(output, (byte)0); } return copy; } else { return output; } } // [...] } Tại [10] thực hiện ước tính output size bằng this.buffered + inputLen, khi debug thì ta thấy trong quá trình init this.buffered = 0 nên giá trị output = new byte[0] = [] Tiếp theo sẽ tính toán buffer tại [11], do this.buffered = 0 và đang trong quá trình decrypt (this.decrypting = true) nên sẽ trả trực tiếp giá trị input Do đó, finalBuf == input nên finalOffset = 16 (tại [12]) và finalBufLen = 0 (tại [13]) Tại [14], hàm fillOutputBuffer() được thể hiện như sau:\nprivate int fillOutputBuffer(byte[] finalBuf, int finalOffset, byte[] output, int outOfs, int finalBufLen, byte[] input) throws ShortBufferException, BadPaddingException, IllegalBlockSizeException { int var8; try { int len = this.finalNoPadding(finalBuf, finalOffset, output, outOfs, finalBufLen); if (this.decrypting \u0026\u0026 this.padding != null) { len = this.unpad(len, outOfs, output); } var8 = len; } finally { // [...] } return var8; } Hàm finalNoPadding() khi gặp length finalBufLen = 0 thì return ngay về 0\nprivate int finalNoPadding(byte[] in, int inOfs, byte[] out, int outOfs, int len) throws IllegalBlockSizeException, ShortBufferException { if (in != null \u0026\u0026 len != 0) { // [...] } else { return 0; } } vì khi len = 0 thì sẽ dẫn đến kết quả của this.unpad(len, outOfs, output) = 0 dẫn đến tại [14], giá trị của outLen cũng bằng 0. Nên điều kiện tại [15], if(outLen \u003c output.length) = false nên kết quả hàm doFinal() trả về rỗng ([]) thay vì throw exception.\nGiờ thì ta hoàn toàn có thể exploit Error-based XXE đọc local file rồi :D Nhanh chóng soạn report và submit lên H1, sau khi bên H1 triage thì họ báo không thể reproduce và quăng cho một lỗi rất lạ mà chưa từng gặp trước đây ngay ở bước đăng ký serverId Sau đó, mình đã vội check lại các CVE mới nhất của ColdFusion thì thấy rằng ngày 08/04 họ đã release một bản update vá nhiều lỗ hổng, trong đó có yêu cầu client download PDFgService mới nhất dưới dạng file zip và replace version cũ: lúc này, trong đầu nghĩ là khả năng ăn dup khá là cao rồi vì chợt nhớ ra mình đang research ở version CF2021. Đọc lại policy phần test plan, có một lưu ý quan trọng mà ban đầu mình không đọc rằng họ khuyến khích thử nghiệm trên bản ColdFusion 2025 (bài học sâu sắc là nên đọc policy trước khi làm bất kỳ điều gì 🙄) Nhanh chóng setup nhanh ColdFusion 2025 và cập nhật lên bản update mới nhất (2025 Release Update 1), và port mặc định của PDF Service trên version này là 8997. Đi nhanh tới C:\\ColdFusion2025\\cfusion\\jetty\\webapps\\PDFgServlet thì mình nhận thấy rằng toàn bộ mã nguồn của PDFg Service đã bị obfuscate hoàn toàn 😧 lúc này bạn cũng có thể đoán được rằng họ đã aware được rủi ro của service này rồi, vì toàn bộ các tên class hay tên hàm đều đã bị làm rối trong khi version cũ thì lại không nhưng mình lại nghĩ rằng mã nguồn chắc cũng không thay đổi gì nhiều so với bản cũ.\nChưa bao giờ mình thấy kỹ năng reverse quan trọng hơn lúc này, mình sử dụng JADX mò tới chổ chức năng convertToPDF() cũ để kiểm tra sự thay đổi, nhưng có vẻ như lỗ hổng vẫn còn ở đó chỉ là đã bị đổi tên thành coldfusion.pdf.service.remote.b::m141do() và được gọi bởi hàm coldfusion.pdf.service.remote.b::a() Reproduce lại bug thì khi request tạo một serverID bất kỳ, thì kết quả server trả về error giống như của triager: Phân tích trên mã nguồn mới nhất, thì quá trình register đã khác so với version cũ rồi, ta buộc phải truyền vào thêm hai tham số nữa đó là engine và publickey Hmm… engine và publickey??? Ah có vẻ như hạn chế mà ta đã phân tích ở version CF2021 có vẻ Adobe cũng đã nhìn ra được rồi chăng? 😛.\nNghĩa là server sẽ encrypt giá trị sessionId khi ta register một serverId mới với publickey của riêng mình, sau đó sẽ dùng private key của mình để giải mã lấy sessionId (hay seedVal) để tạo authen token :D. Thôi tạm hiểu là như vậy đi, vì dù sao ta cũng đâu cần biết seedVal để làm gì nhỉ? Mục đích hiện tại là tìm cách tạo Server ID để exploit XXE.\nFollow theo luồng thực thi, chương trình sẽ tiếp tục lấy hai giá trị serverid và engine đặt vào bên trong hàm this.conversionManager.m93if(): Biến f80a là một HashMap, có thể hiểu nôm na là sẽ chứa list các ServerID của chúng ta và mỗi ServerID sẽ được map với một engine nhất định. Có lẽ đây là điểm khác nhất so với ColdFusion 2021, ở đây sẽ support 2 loại engine là WEBKIT và PDFREACTOR. Trong đó:\nWEBKIT sẽ được handle bởi coldfusion.pdf.service.remote.b (đây cũng là sink mà ta đã phân tích ở version CF2021) PDFREACTOR sẽ được handle bởi coldfusion.pdf.service.remote.a sau đó, việc register ServerID sẽ được xử lý tại dòng này, trong đó parameter2 là serverid và parameter3 là publickey:\nbyte[] a2 = this.conversionManager.a(parameter2).a(parameter2, parameter3); this.conversionManager là object của coldfusion.pdf.service.h, nên sẽ gọi đến coldfusion.pdf.service.h::a(), code như bên dưới: như mình đã nói ở bên trên, chổ này chỉ đơn giản là lấy ra instance của engine sẽ dùng ra để xử lý. Giả sử, nếu ở đây sử dụng PDFREACTOR engine thì sẽ return về instance của class coldfusion.pdf.service.remote.a, sau đó sẽ gọi tiếp coldfusion.pdf.service.remote.a::a(parameter2, parameter3), nhưng class hiện tại không có hàm a() với các kiểu đối số như trên, nên sẽ lookup trên class cha là a.b Tại đây, chính xác là hàm xử lý publickey: hàm k.m107do() sẽ thực hiện decode base64 publicKey và thực hiện đọc publicKey và lưu vào biến f43for, hiểu nôm na là sẽ được sử dụng cho việc mã hóa ở phía sau: kết quả của hàm k.m109if() cũng là kết quả của toàn bộ function, đoạn mã xử lý như bên dưới: Tại đối số của File() instance, hàm a() trả về đường dẫn đến file sessionId.json và mục đích chủ yếu cũng chỉ là lưu seedValue vào file sessionId.json mà thôi. Ví dụ: Có vẻ hơi dài dòng chổ này, nên tóm lại là để register một serverId ở version 2025 thì ta cần phải cung cấp thêm hai tham số nữa là engine và publickey nữa, nhưng vì ta đã biết cách bypass authen ngay từ trước nên việc giải mã response là không cần thiết, nên giờ đơn giản chỉ việc là tạo ra một publicKey random nào đó và create một ServerID mới. Như vậy thì WEBKIT engine là sink dẫn đến lỗ hổng XXE mà ta đã phân tích ở version CF2021. Giờ ta sẽ tiếp tục phân tích engine còn lại là PDFREACTOR.\nĐối với PDFREACTOR được handle bởi coldfusion.pdf.service.remote.a và class được extends từ class a.b, hàm a() bên dưới thực hiện chức năng convert PDF. Vì sao mình biết thì đơn giản là mình dựa vào type của các tham số trong hàm như là String hay HttpServletResponse (khá giống với bản chưa obfuscate trước đó). Tập trung vào hàm fVar.a(), nhưng khi goto thì nhảy đến interface f, nghĩa là sẽ gọi hàm a() của một class nào đó implements từ interface f này check thử thì có 2 class implements interface f là class a.e và coldfusion.pdf.service.n nhưng để chắc chắn, tìm nơi biến fVar được khởi tạo thì ta thấy có hai chổ khá rõ ràng nằm ở class coldfusion.pdf.service.i đi sâu vào hàm m96if(), ta thấy rõ ràng rằng đối với PDFREACTOR sẽ tạo một instance của a.e và đây là nơi xử lý convert to PDF của PDFREACTOR engine: tiếp tục đi sâu vào hàm m22do(): có thể thấy rằng Adobe có vẻ aware về lỗ hổng XXE nên đã tắt một số tính năng đặc biệt khi xử lý dữ liệu XML, nhưng nhìn kỹ thì có vẻ nó vẫn chưa đủ để ngăn chặn lỗ hổng này 🤔\nVà cuối cùng thì ta vẫn có thể bypass được authentication và khai thác XXE trên version mới nhất thông qua WEBKIT engine: #Time-line 24/04/2025: Submit report to Adobe via Hackerone 07/05/2025: The triager is unable to reproduce the issue and has requested additional information 08/05/2025: Submit new detail information and exploit code 16/05/2025: Adobe acknowledges vulnerability 08/07/2025: CVE-2025-49538 has been published 20/11/2026: Public blog post 💀 ",
+  "wordCount" : "3756",
+  "inLanguage": "en",
+  "image": "https://nhienit2010.github.io/images/papermod-cover.png","datePublished": "2026-11-20T10:33:38+07:00",
+  "dateModified": "2026-11-20T10:33:38+07:00",
+  "author":[{
+    "@type": "Person",
+    "name": "nhienit"
+  }],
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://nhienit2010.github.io/posts/adobe-coldfusion-auth-bypass-xxe/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "nhienit",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://nhienit2010.github.io/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+<body id="top">
+    <header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="https://nhienit2010.github.io/" accesskey="h" title="nhienit (Alt + H)">nhienit</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="https://nhienit2010.github.io/archives/" title="Archive">
+                    <span>Archive</span>
+                </a>
+            </li>
+            <li>
+                <a href="https://nhienit2010.github.io/tags/" title="Tags">
+                    <span>Tags</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="https://nhienit2010.github.io/">Home</a>&nbsp;»&nbsp;<a href="https://nhienit2010.github.io/posts/">Posts</a></div>
+    <h1 class="post-title entry-hint-parent">
+      CVE-2025-49538 – Adobe ColdFusion Auth Bypass XXE
+    </h1>
+    <div class="post-meta"><span title='2026-11-20 10:33:38 +0700 +07'>November 20, 2026</span>&nbsp;·&nbsp;<span>18 min</span>&nbsp;·&nbsp;<span>nhienit</span>&nbsp;|&nbsp;<span>
+    <a href="https://github.com/adityatelange/hugo-PaperMod/tree/exampleSite/content/posts/adobe-coldfusion-auth-bypass-xxe.md" rel="noopener noreferrer edit" target="_blank">Suggest Changes</a>
+</span>
+
+</div>
+  </header> <div class="toc">
+    <details  open>
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">Table of Contents</span>
+        </summary>
+
+        <div class="inner"><ul>
+                <li>
+                    <a href="#v%e1%bb%81-adobe-coldfusion" aria-label="#Về Adobe ColdFusion">#Về Adobe ColdFusion</a></li>
+                <li>
+                    <a href="#setup-m%c3%b4i-tr%c6%b0%e1%bb%9dng" aria-label="#Setup môi trường">#Setup môi trường</a></li>
+                <li>
+                    <a href="#overview" aria-label="#Overview">#Overview</a></li>
+                <li>
+                    <a href="#the-bug" aria-label="#The bug">#The bug</a></li>
+                <li>
+                    <a href="#time-line" aria-label="#Time-line">#Time-line</a>
+                </li>
+            </ul>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><blockquote>
+<p>Thật ra bài viết này mình đã soạn từ tháng 9 năm 2025, nhưng không nhớ là tại sao lại lưu draft cho đến bây giờ nữa (chắc có lẽ là đợi vendor patch lâu quá nên quên🥲). Dù sao cũng đã viết rồi thì cũng nên đăng vậy.</p>
+</blockquote>
+<p>Mình bắt tay vào nghiên cứu về Adobe ColdFusion trong khi tìm thứ gì đó mới mẻ để nghiên cứu, do một phần là Adobe cũng launch một Bounty Program trên Hackerone. Trong đống scope chỉ có mỗi ColdFusion là có mã nguồn để audit và được trao bounty, cũng không biết là vô tình hay sắp đặt nữa. Nên nếu như may mắn thì kiếm được chút đỉnh coi như bù công sức bỏ ra, còn không thì coi như có chút kinh nghiệm vậy :D</p>
+<h3 id="về-adobe-coldfusion">#Về Adobe ColdFusion<a hidden class="anchor" aria-hidden="true" href="#về-adobe-coldfusion">#</a></h3>
+<p>Adobe ColdFusion là một nền tảng phát triển ứng dụng web và máy chủ ứng dụng thương mại được phát triển bởi Adobe. ColdFusion sử dụng ngôn ngữ lập trình ColdFusion Markup Language (CFML), hỗ trợ cả cú pháp dạng thẻ (tag-based) và dạng script, giúp xây dựng các ứng dụng web động, API và hệ thống doanh nghiệp. Nền tảng này cung cấp nhiều tính năng tích hợp như kết nối cơ sở dữ liệu, xử lý tệp tin, tạo tài liệu và tương tác với các dịch vụ bên ngoài. Ngoài ra, ColdFusion còn có ColdFusion Administrator, một giao diện quản trị trên nền web cho phép cấu hình và quản lý máy chủ.</p>
+<h3 id="setup-môi-trường">#Setup môi trường<a hidden class="anchor" aria-hidden="true" href="#setup-môi-trường">#</a></h3>
+<p>Cũng không biết vì sao mình lại chọn Adobe ColdFusion 2021 làm điểm khởi đầu nhưng có lẽ là do trong quá trình mình reproduce lại các bug cũ đã được public trước đó thì mình đã chọn version này nên trong lúc reproduce các CVE cũ xong thì cũng sẵn tiện update lên bản vá mới nhất (lúc này là ColdFusion 2021 Update 19) rồi ngâm cứu tiếp luôn.
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/1.png"></p>
+<p>Chi tiết về phần setup đã được hướng dẫn tại đây: <a href="https://hackerone.com/adobe#user-content-coldfusion-test-plan">https://hackerone.com/adobe#user-content-coldfusion-test-plan</a></p>
+<h3 id="overview">#Overview<a hidden class="anchor" aria-hidden="true" href="#overview">#</a></h3>
+<p>Sau khi phân tích các CVE cũ thì idea ban đầu của mình là bypass bản vá và check các variant của chúng xem còn tồn tại ở chổ nào nữa không, nhưng có vẻ như thời điểm đó chưa có nhiều kết quả khả quan (lúc này mình chưa dùng AI 🥲).</p>
+<p>Nên mình đã chuyển sang một hướng khác là check xem còn có service lân cận nào chạy song song với service chính ở port 80/443 hay không, vì rất có thể đây là điểm mà đôi khi các researcher khác bỏ qua trong quá trình research. Lúc này search vội các file <code>web.xml</code> (nôm na là file cấu hình dịch vụ web) để tìm các attack surface khác, tại <code>./cfusion/jetty/webapps/</code> mình thấy có hai ứng dụng khác là <code>solr</code> và <code>PDFgServlet</code>.
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/2.png"></p>
+<p><code>PDFgServlet</code> nghe có vẻ khá là thú vị nên mình tiếp tục đào sâu vào nó, và <code>web.xml</code> có nội dung như sau:
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/3.png"></p>
+<p>Bên dưới là toàn bộ mã nguồn xử lý của <code>PDFgServlet</code>, tất cả đã được compile thành các file Java Class, và hoàn toàn có thể load chúng vào IntelliJ hoặc Jadx để đọc.
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/4.png"></p>
+<p>Để tương tác với service này thì trên Admin Portal tại <code>Data &amp; Services</code> ta thấy có tab <code>PDF Service</code> nghe giống giống với thứ mà ta cần tìm, thì PDF Service mặc định sẽ chạy ở port 8993 hoặc 8997.
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/5.png"></p>
+<p>Không những thế, các service khác cũng cùng chạy ở port này như là: <code>solr</code> và <code>AdminServlet</code>
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/6.png"></p>
+<p>và để reach tới PDFgServlet chỉ cần gửi request đến <code>http://127.0.0.1:8993/PDFgServlet/</code> là được.
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/8.png"></p>
+<h3 id="the-bug">#The bug<a hidden class="anchor" aria-hidden="true" href="#the-bug">#</a></h3>
+<p>Mã nguồn ở PDF Service hiện tại cũng không quá phức tạp, class xử lý các HTTP request chính là <code>coldfusion.pdf.service.remote</code>. Ngồi review code một lúc thì mình phát hiện có một bug XXE tại hàm <code>CFPDFGRemoteServiceManager::checkPDFDestPath()</code> do lấy giá trị từ tham số <code>pdfSettingData</code> đặt trực tiếp vào <code>DocumentBuilderFactory</code> để parse XML mà không set feature để tắt <code>External Entities</code>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">public</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="nf">checkPDFDestPath</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">pdfSettingsData</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">PDFConversionException</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">DocumentBuilderFactory</span><span class="w"> </span><span class="n">dbf</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DocumentBuilderFactory</span><span class="p">.</span><span class="na">newInstance</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">try</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">DocumentBuilder</span><span class="w"> </span><span class="n">db</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dbf</span><span class="p">.</span><span class="na">newDocumentBuilder</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">Document</span><span class="w"> </span><span class="n">dom</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">db</span><span class="p">.</span><span class="na">parse</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">InputSource</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">ByteArrayInputStream</span><span class="p">(</span><span class="n">pdfSettingsData</span><span class="p">.</span><span class="na">getBytes</span><span class="p">())));</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">NodeList</span><span class="w"> </span><span class="n">settingNodes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dom</span><span class="p">.</span><span class="na">getElementsByTagName</span><span class="p">(</span><span class="s">&#34;Setting&#34;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">settingNodes</span><span class="p">.</span><span class="na">getLength</span><span class="p">();</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="c1">// [...]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">false</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">Exception</span><span class="w"> </span><span class="n">ex</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">throw</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">PDFConversionException</span><span class="p">(</span><span class="n">400</span><span class="p">,</span><span class="w"> </span><span class="n">ex</span><span class="p">.</span><span class="na">getLocalizedMessage</span><span class="p">());</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>Thực hiện trace back, ta có call-stack như sau:</p>
+<pre tabindex="0"><code>CFPDFGRemoteServiceManager::checkPDFDestPath()
+-&gt; CFPDFGRemoteServiceManager::convertToPDF()
+    -&gt; ConversionTask::run()
+</code></pre><p>Hàm <code>ConversionTask::run()</code> được định nghĩa như sau:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">ConversionTask</span><span class="w"> </span><span class="kd">implements</span><span class="w"> </span><span class="n">Runnable</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">conversionData</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="n">HttpServletResponse</span><span class="w"> </span><span class="n">response</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// [...]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">timeout</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="n">CFPDFGService</span><span class="w"> </span><span class="n">service</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// [...]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">run</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">try</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="k">try</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="na">service</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                    </span><span class="k">throw</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">PDFConversionException</span><span class="p">(</span><span class="n">429</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;NO_PDFGSERVICE_FREE&#34;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="k">this</span><span class="p">.</span><span class="na">success</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CFPDFgWaitingQManager</span><span class="p">.</span><span class="na">this</span><span class="p">.</span><span class="na">srvMgr</span><span class="p">.</span><span class="na">convertToPDF</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="na">conversionData</span><span class="p">,</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="na">response</span><span class="p">,</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="na">service</span><span class="p">,</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="na">timeout</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="c1">// [...]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">PDFConversionException</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="c1">// [...]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">Throwable</span><span class="w"> </span><span class="n">th</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="c1">// [...]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// [...]</span><span class="w">
+</span></span></span></code></pre></div><p>Ta thấy rằng, class <code>ConversionTask</code> được implement từ interface <code>Runnable</code>, hiểu nôm na là class này định nghĩa một tác vụ được thực thi trong một thread riêng biệt hoặc khi có một event nào đó được trigger.</p>
+<p>Trong class này, <code>this.conversionData</code> là một property của <code>ConversationTask</code> (thứ mà ta muốn control), nên tiếp theo ta phải tìm nơi tạo ra instance của class này và xem ta có thể control được <code>conversionData</code> hay không.</p>
+<p>Thực hiện Find Usage, có 1 kết quả duy nhất cho thấy rằng instance của <code>ConversationTask</code> được tạo ở <code>CFPDFgWaitingQManager::addTask()</code>:
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/11.png"></p>
+<p>Tiếp tục trace back, thì nó được gọi tại hàm <code>PDFGServlet::doConvert()</code> và cuối cùng, được trigger qua POST request:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">protected</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">doPost</span><span class="p">(</span><span class="n">HttpServletRequest</span><span class="w"> </span><span class="n">req</span><span class="p">,</span><span class="w"> </span><span class="n">HttpServletResponse</span><span class="w"> </span><span class="n">resp</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">ServletException</span><span class="p">,</span><span class="w"> </span><span class="n">IOException</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// [...]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">String</span><span class="w"> </span><span class="n">action</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">req</span><span class="p">.</span><span class="na">getParameter</span><span class="p">(</span><span class="n">ACTION</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// [...]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">String</span><span class="w"> </span><span class="n">serverId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">req</span><span class="p">.</span><span class="na">getParameter</span><span class="p">(</span><span class="n">SERVERID</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// [...]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">action</span><span class="p">.</span><span class="na">equals</span><span class="p">(</span><span class="n">CONVERT</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">doConvert</span><span class="p">(</span><span class="n">req</span><span class="p">,</span><span class="w"> </span><span class="n">resp</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// [...]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>Tại hàm <code>PDFGServlet::doConvert()</code>, ta thấy được giá trị <code>conversion_data</code> được lấy từ param <code>conversionrequest</code> ở request body (tại [2]) và điều đáng nói hơn là có một bước authentication qua hàm <code>this.serviceMgr.validateAuthToken()</code> (tại [1]) trước khi nhảy vào sink XXE tại [3]:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">private</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">doConvert</span><span class="p">(</span><span class="n">HttpServletRequest</span><span class="w"> </span><span class="n">req</span><span class="p">,</span><span class="w"> </span><span class="n">HttpServletResponse</span><span class="w"> </span><span class="n">resp</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">IOException</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">String</span><span class="w"> </span><span class="n">authToken</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">req</span><span class="p">.</span><span class="na">getParameter</span><span class="p">(</span><span class="n">AUTHTOKEN</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">String</span><span class="w"> </span><span class="n">serverId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">req</span><span class="p">.</span><span class="na">getParameter</span><span class="p">(</span><span class="n">SERVERID</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">try</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">try</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="k">this</span><span class="p">.</span><span class="na">serviceMgr</span><span class="p">.</span><span class="na">validateAuthToken</span><span class="p">(</span><span class="n">serverId</span><span class="p">,</span><span class="w"> </span><span class="n">authToken</span><span class="p">);</span><span class="w"> </span><span class="c1">// [1]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">String</span><span class="w"> </span><span class="n">conversion_data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">req</span><span class="p">.</span><span class="na">getParameter</span><span class="p">(</span><span class="n">CONVERSION_REQUEST</span><span class="p">);</span><span class="w"> </span><span class="c1">// [2]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="c1">// [...]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="k">try</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="k">try</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                    </span><span class="c1">// [...]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                    </span><span class="n">CFPDFgWaitingQManager</span><span class="p">.</span><span class="na">ConversionTask</span><span class="w"> </span><span class="n">task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">waitingQMgr</span><span class="p">.</span><span class="na">addTask</span><span class="p">(</span><span class="n">conversion_data</span><span class="p">,</span><span class="w"> </span><span class="n">resp</span><span class="p">,</span><span class="w"> </span><span class="n">waitingQ_timeout</span><span class="p">);</span><span class="w"> </span><span class="c1">// [3]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                    </span><span class="kd">synchronized</span><span class="w"> </span><span class="p">(</span><span class="n">task</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                        </span><span class="n">task</span><span class="p">.</span><span class="na">wait</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">task</span><span class="p">.</span><span class="na">isConversionSuccess</span><span class="p">())</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                        </span><span class="n">resp</span><span class="p">.</span><span class="na">sendError</span><span class="p">(</span><span class="n">task</span><span class="p">.</span><span class="na">getErrorCode</span><span class="p">(),</span><span class="w"> </span><span class="n">task</span><span class="p">.</span><span class="na">getErrorMsg</span><span class="p">());</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                    </span><span class="c1">// [...]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>Hàm <code>validateAuthToken()</code> nhận vào 2 tham số là <code>serverId</code> và <code>authToken</code>, những giá trị này ta hoàn toàn kiểm soát được. Tiếp tục đào sâu vào, ta thấy code gọi lần lượt đến <code>CFPDFgCryptoHelper::authenticateToken()</code>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">authenticateToken</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">serverId</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">authtoken</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">PDFgCryptoException</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">String</span><span class="w"> </span><span class="n">sessionId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sessionIdMap</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="n">serverId</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// [...]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">try</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">PDFgCryptoUtils</span><span class="p">.</span><span class="na">decrypt</span><span class="p">(</span><span class="n">authtoken</span><span class="p">,</span><span class="w"> </span><span class="n">sessionId</span><span class="p">);</span><span class="w"> </span><span class="c1">// [4]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">Exception</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">throw</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">PDFgCryptoException</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>Tại [4], hàm <code>PDFgCryptoUtils.decrypt()</code> thực hiện decode base64 <code>encryptedPassword</code> (hay <code>authtoken</code>) và sử dụng <code>seedval</code> (giá trị của <code>sessionId</code> được mapping với <code>serverId</code>) để tạo AES key để tiến hành decrypt với mode <code>AES/CBC/PKCS5Padding</code>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="nf">decrypt</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">encryptedPassword</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">seedval</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">PDFgCryptoException</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">try</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="n">decoded</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">binaryDecode</span><span class="p">(</span><span class="n">encryptedPassword</span><span class="p">,</span><span class="w"> </span><span class="n">BASEENCODING</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="n">decrypted</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">decrypt</span><span class="p">(</span><span class="n">decoded</span><span class="p">,</span><span class="w"> </span><span class="n">generateAesKey</span><span class="p">(</span><span class="n">seedval</span><span class="p">),</span><span class="w"> </span><span class="n">AES_CBC_PKCS5_ALGORITHM</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">String</span><span class="p">(</span><span class="n">decrypted</span><span class="p">,</span><span class="w"> </span><span class="n">CHARSET</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">UnsupportedEncodingException</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">throw</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">PDFgCryptoException</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>Hàm <code>generateAesKey()</code> tạo AES key từ <code>seedval</code> như sau và ta biết được AES Key chỉ có 16 ký tự :</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="nf">generateAesKey</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">seed</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="n">seedBytes</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">seed</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">seed</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">seed</span><span class="p">.</span><span class="na">length</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">try</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">seedBytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">seed</span><span class="p">.</span><span class="na">getBytes</span><span class="p">(</span><span class="n">CHARSET</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">UnsupportedEncodingException</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">seedBytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">seed</span><span class="p">.</span><span class="na">getBytes</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">seedLen</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">seedBytes</span><span class="p">.</span><span class="na">length</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="n">seedBytes2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Arrays</span><span class="p">.</span><span class="na">copyOf</span><span class="p">(</span><span class="n">seedBytes</span><span class="p">,</span><span class="w"> </span><span class="n">16</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">seedLen</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">16</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">seedLen</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">16</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">seedBytes2</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">PADCHAR</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">SecretKey</span><span class="w"> </span><span class="n">secretKey</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">SecretKeySpec</span><span class="p">(</span><span class="n">seedBytes2</span><span class="p">,</span><span class="w"> </span><span class="n">AES</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">Base64Encoder</span><span class="p">.</span><span class="na">encode</span><span class="p">(</span><span class="n">secretKey</span><span class="p">.</span><span class="na">getEncoded</span><span class="p">());</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>Hmm&hellip; nghĩa là ta cần phải biết <code>seedval</code> và thực hiện tạo một valid token để xác thực? Nhưng có hai thứ mà ta chưa biết là <code>Server Id</code> và <code>Seed Value</code> lấy từ đâu ra, back lại về <code>PDFGServlet::doPost()</code>, ta thấy có một action register cho phép tạo một Session ID map với <code>severId</code> mà ta truyền vào:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">protected</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">doPost</span><span class="p">(</span><span class="n">HttpServletRequest</span><span class="w"> </span><span class="n">req</span><span class="p">,</span><span class="w"> </span><span class="n">HttpServletResponse</span><span class="w"> </span><span class="n">resp</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">ServletException</span><span class="p">,</span><span class="w"> </span><span class="n">IOException</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// [...]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">String</span><span class="w"> </span><span class="n">action</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">req</span><span class="p">.</span><span class="na">getParameter</span><span class="p">(</span><span class="n">ACTION</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// [...]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">String</span><span class="w"> </span><span class="n">serverId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">req</span><span class="p">.</span><span class="na">getParameter</span><span class="p">(</span><span class="n">SERVERID</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// [...]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">action</span><span class="p">.</span><span class="na">equals</span><span class="p">(</span><span class="n">REGISTER</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">try</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="n">sessionId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="na">serviceMgr</span><span class="p">.</span><span class="na">generateSessionId</span><span class="p">(</span><span class="n">serverId</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">sessionId</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="c1">// [...]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="n">ServletOutputStream</span><span class="w"> </span><span class="n">output</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">resp</span><span class="p">.</span><span class="na">getOutputStream</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="n">output</span><span class="p">.</span><span class="na">write</span><span class="p">(</span><span class="n">sessionId</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="k">return</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">PDFgCryptoException</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="c1">// [...]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// [...]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>Hàm <code>CFPDFGServiceManager::generateSessionId()</code> gọi tiếp hàm <code>CFPDFgCryptoHelper.generateSessionId()</code> và ở đây, sẽ tạo một giá trị ngẫu nhiên gán vào biến <code>sessionId</code> và put nó vào <code>sessionIdMap</code> với key name là <code>serverId</code> , sau đó trả về giá trị seed ở phần response dưới dạng chuỗi được encrypt bằng <code>publicKey</code>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="nf">generateSessionId</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">serverId</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">PDFgCryptoException</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kt">long</span><span class="w"> </span><span class="n">sessionId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">PDFgCryptoUtils</span><span class="p">.</span><span class="na">generateRandom</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="n">sessionIdMap</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">serverId</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="p">.</span><span class="na">valueOf</span><span class="p">(</span><span class="n">sessionId</span><span class="p">));</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">PDFgCryptoUtils</span><span class="p">.</span><span class="na">rsaEncrypt</span><span class="p">(</span><span class="n">getBytes</span><span class="p">(</span><span class="n">Long</span><span class="p">.</span><span class="na">valueOf</span><span class="p">(</span><span class="n">sessionId</span><span class="p">)),</span><span class="w"> </span><span class="n">publicKey</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>Giá trị publicKey này được init ngay từ ban đầu được lấy từ file <code>C:\ColdFusion2021\cfusion\jetty\webapps\PDFgServlet\Resources\bin</code>
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/12.png"></p>
+<p><img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/13.png"></p>
+<p>và hàm <code>PDFgCryptoUtils::createPublicKeyObj()</code> chịu trách nhiệm tạo ra <code>publicKey</code> object:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="n">PublicKey</span><span class="w"> </span><span class="nf">createPublicKeyObj</span><span class="p">(</span><span class="n">BigInteger</span><span class="w"> </span><span class="n">pKeyMod</span><span class="p">,</span><span class="w"> </span><span class="n">BigInteger</span><span class="w"> </span><span class="n">pKeyExp</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">PDFgCryptoException</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">try</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">KeyFactory</span><span class="w"> </span><span class="n">fact</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">KeyFactory</span><span class="p">.</span><span class="na">getInstance</span><span class="p">(</span><span class="n">RSA_GENERATOR_ALGORITHM</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;BC&#34;</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">RSAPublicKeySpec</span><span class="w"> </span><span class="n">keySpec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">RSAPublicKeySpec</span><span class="p">(</span><span class="n">pKeyMod</span><span class="p">,</span><span class="w"> </span><span class="n">pKeyExp</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">fact</span><span class="p">.</span><span class="na">generatePublic</span><span class="p">(</span><span class="n">keySpec</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">NoSuchAlgorithmException</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">throw</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">PDFgCryptoException</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">NoSuchProviderException</span><span class="w"> </span><span class="n">e2</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">throw</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">PDFgCryptoException</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">InvalidKeySpecException</span><span class="w"> </span><span class="n">e3</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">throw</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">PDFgCryptoException</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>tất nhiên là có tạo <code>publicKey</code> thì phải có tạo <code>privateKey</code>, nhưng vấn đề là không có hàm nào gọi hàm <code>createPrivateKeyObj()</code> nên đồng nghĩa với không có <code>privateKey</code> nào được sinh ra 🥲
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/14.png"></p>
+<p>Vậy nên cho dù có tạo được <code>sessionId</code> từ <code>serverId</code> thì cũng không thể decrypt message để lấy được giá trị của <code>sessionId</code> (hay <code>seedval</code> cho hàm <code>PDFgCryptoUtils.decrypt()</code>) để tạo authentication token:
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/15.png"></p>
+<p>Để thử nghiệm thì mình cài đặt trên hai máy ảo khác nhau và thấy rằng các file public key đều giống nhau, vậy nên nếu có thể leak được private key thì ta có thể tạo authentication token để exploit trên nhiều server khác! Nhưng idea đó cũng nhanh chóng vụt tắt vì nếu có lưu file private key trên server thì ta cũng phải tìm một bug local file read hoặc chức năng nào đó để lấy file private key về để giải mã.</p>
+<p>Trace back về hàm <code>CFPDFgCryptoHelper::authenticateToken()</code>, thứ khiến mình để ý là ở đây (tại [4]) chỉ quan tâm là quá trình decrypt <code>authtoken</code> có lỗi hay không, chứ không quan tâm rằng giá trị sau khi decrypt có phải là một giá trị gì đó hợp lệ hay không (ví dụ như phải là chuỗi admin hay phải chứa thông tin user gì đó chẳng hạn, &hellip;)
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/16.png"></p>
+<p>Mặc dù mình không rành mấy thuật toán mã hóa này lắm, nhưng về cơ bản, khi giải mã AES, ciphertext sẽ được xử lý theo từng block có kích thước cố định là 16 bytes. Tùy cấu hình, thuật toán có thể sử dụng encryption key với kích thước 16, 24 hoặc 32 bytes. Nhưng may mắn sau nhiều lần fuzzing, thì cũng có thể bypass được authentication bằng cách gửi lên 16 bytes null dưới dạng cipher text:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">&gt;&gt;&gt; import base64
+</span></span><span class="line"><span class="cl">&gt;&gt;&gt; base64.b64encode<span class="o">(</span>b<span class="s2">&#34;\x00&#34;</span> * 16<span class="o">)</span>
+</span></span><span class="line"><span class="cl">b<span class="s1">&#39;AAAAAAAAAAAAAAAAAAAAAA==&#39;</span>
+</span></span></code></pre></div><p><img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/17.png"></p>
+<p>Cụ thể là decrypt <code>authToken</code> diễn ra thành công, và kết quả trả về là rỗng 😛
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/18.png"></p>
+<p>Đào sâu vào luồng giải mã tại <code>PDFgCryptoUtils::decrypt(String encryptedPassword, String seedval)</code>, với thuật toán <code>AES/CBC/PKCS5Padding</code> và AES Key gồm 16 ký tự, sau đó gọi tiếp đến một hàm <code>decrypt()</code> khác với <code>CRYPT_MODE = 2</code>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="nf">decrypt</span><span class="p">(</span><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="n">bytes</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">algorithm</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">PDFgCryptoException</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">try</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="n">decrypted</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">processCipherWork</span><span class="p">(</span><span class="kc">null</span><span class="p">,</span><span class="w"> </span><span class="n">bytes</span><span class="p">,</span><span class="w"> </span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="n">algorithm</span><span class="p">,</span><span class="w"> </span><span class="n">2</span><span class="p">,</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span><span class="w"> </span><span class="n">0</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">decrypted</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="p">(</span><span class="n">NoSuchAlgorithmException</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">throw</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">PDFgCryptoException</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>phân tích vào bên trong <code>PDFgCryptoUtils::processCipherWork()</code> như sau:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="nf">processCipherWork</span><span class="p">(</span><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="n">original</span><span class="p">,</span><span class="w"> </span><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="n">decoded</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">algorithm</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">CRYPT_MODE</span><span class="p">,</span><span class="w"> </span><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="n">prefix</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">iter</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">NoSuchAlgorithmException</span><span class="p">,</span><span class="w"> </span><span class="n">PDFgCryptoException</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="n">enc</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">offset</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">0</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">try</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">slshIndx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">algorithm</span><span class="p">.</span><span class="na">indexOf</span><span class="p">(</span><span class="n">47</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">String</span><span class="w"> </span><span class="n">algName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">algorithm</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="kt">boolean</span><span class="w"> </span><span class="n">feedbackMode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">slshIndx</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="o">-</span><span class="n">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">algName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">algorithm</span><span class="p">.</span><span class="na">substring</span><span class="p">(</span><span class="n">0</span><span class="p">,</span><span class="w"> </span><span class="n">slshIndx</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">String</span><span class="w"> </span><span class="n">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">algorithm</span><span class="p">.</span><span class="na">substring</span><span class="p">(</span><span class="n">slshIndx</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">1</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">mode</span><span class="p">.</span><span class="na">startsWith</span><span class="p">(</span><span class="s">&#34;ECB&#34;</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="c1">// [5]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="n">feedbackMode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">Cipher</span><span class="w"> </span><span class="n">cipher</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Cipher</span><span class="p">.</span><span class="na">getInstance</span><span class="p">(</span><span class="n">algorithm</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">SecretKey</span><span class="w"> </span><span class="n">recreatedSecretKey</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">retrieveSecretKey</span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="n">algName</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">feedbackMode</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">prefix</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="n">prefix</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="kt">byte</span><span class="o">[</span><span class="n">cipher</span><span class="p">.</span><span class="na">getBlockSize</span><span class="p">()</span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="c1">// [6]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="n">offset</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">prefix</span><span class="p">.</span><span class="na">length</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">CRYPT_MODE</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                    </span><span class="c1">// [...]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                    </span><span class="n">System</span><span class="p">.</span><span class="na">arraycopy</span><span class="p">(</span><span class="n">decoded</span><span class="p">,</span><span class="w"> </span><span class="n">0</span><span class="p">,</span><span class="w"> </span><span class="n">prefix</span><span class="p">,</span><span class="w"> </span><span class="n">0</span><span class="p">,</span><span class="w"> </span><span class="n">offset</span><span class="p">);</span><span class="w"> </span><span class="c1">// [7]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">IvParameterSpec</span><span class="w"> </span><span class="n">ivParamSpec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">IvParameterSpec</span><span class="p">(</span><span class="n">prefix</span><span class="p">);</span><span class="w"> </span><span class="c1">// [8]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">cipher</span><span class="p">.</span><span class="na">init</span><span class="p">(</span><span class="n">CRYPT_MODE</span><span class="p">,</span><span class="w"> </span><span class="n">recreatedSecretKey</span><span class="p">,</span><span class="w"> </span><span class="n">ivParamSpec</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="c1">// [...]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">CRYPT_MODE</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">2</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">enc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cipher</span><span class="p">.</span><span class="na">doFinal</span><span class="p">(</span><span class="n">decoded</span><span class="p">,</span><span class="w"> </span><span class="n">offset</span><span class="p">,</span><span class="w"> </span><span class="n">decoded</span><span class="p">.</span><span class="na">length</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">offset</span><span class="p">);</span><span class="w"> </span><span class="c1">// [9]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">           </span><span class="c1">// [...]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">enc</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// [...]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><ul>
+<li>Vì chương trình đang dùng mode <code>CBC</code> nên thõa mãn điều kiện tại [5] nên <code>feedbackMode = true</code>.</li>
+<li>Mặc định, <code>cipher.getBlockSize() = 16</code> nên prefix cũng có độ dài là 16 byte (tại [6]) và <code>offset = 16</code>, chương trình sẽ cắt 16 bytes đầu của ciphertext (biến <code>decoded</code>) đưa vào biến <code>prefix</code> (tại [7]).</li>
+<li>Sau đó tại [8], thì <code>prefix</code> được sử dụng làm <code>IV</code> cho thuật toán.</li>
+</ul>
+<p>Cuối cùng tại [9], gọi <code>cipher.doFinal()</code> để thực hiện quá trình giải mã, với cipher được lấy từ 16 byte còn lại của <code>decoded</code>, vì 16 bytes đầu dùng làm IV mà input chỉ có 16 bytes nên length của cipher còn lại là 0. Tóm tắt như sau:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="n">enc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">com</span><span class="p">.</span><span class="na">sun</span><span class="p">.</span><span class="na">crypto</span><span class="p">.</span><span class="na">provider</span><span class="p">.</span><span class="na">CipherCore</span><span class="p">.</span><span class="na">doFinal</span><span class="p">(</span><span class="n">decoded</span><span class="p">,</span><span class="w"> </span><span class="n">16</span><span class="p">,</span><span class="w"> </span><span class="n">0</span><span class="p">);</span><span class="w">
+</span></span></span></code></pre></div><p>Hàm <code>com.sun.crypto.provider.CipherCore::doFinal(byte[] input, int inputOffset, int inputLen)</code> như sau:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="nf">doFinal</span><span class="p">(</span><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="n">input</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">inputOffset</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">inputLen</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">IllegalBlockSizeException</span><span class="p">,</span><span class="w"> </span><span class="n">BadPaddingException</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">try</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="n">output</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="kt">byte</span><span class="o">[</span><span class="k">this</span><span class="p">.</span><span class="na">getOutputSizeByOperation</span><span class="p">(</span><span class="n">inputLen</span><span class="p">,</span><span class="w"> </span><span class="kc">true</span><span class="p">)</span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="c1">// [10]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="n">finalBuf</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="na">prepareInputBuffer</span><span class="p">(</span><span class="n">input</span><span class="p">,</span><span class="w"> </span><span class="n">inputOffset</span><span class="p">,</span><span class="w"> </span><span class="n">inputLen</span><span class="p">,</span><span class="w"> </span><span class="n">output</span><span class="p">,</span><span class="w"> </span><span class="n">0</span><span class="p">);</span><span class="w"> </span><span class="c1">// [11]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">finalOffset</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">finalBuf</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">input</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">inputOffset</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">0</span><span class="p">;</span><span class="w"> </span><span class="c1">// [12]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">finalBufLen</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">finalBuf</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">input</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">inputLen</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">finalBuf</span><span class="p">.</span><span class="na">length</span><span class="p">;</span><span class="w"> </span><span class="c1">// [13]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">outLen</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="na">fillOutputBuffer</span><span class="p">(</span><span class="n">finalBuf</span><span class="p">,</span><span class="w"> </span><span class="n">finalOffset</span><span class="p">,</span><span class="w"> </span><span class="n">output</span><span class="p">,</span><span class="w"> </span><span class="n">0</span><span class="p">,</span><span class="w"> </span><span class="n">finalBufLen</span><span class="p">,</span><span class="w"> </span><span class="n">input</span><span class="p">);</span><span class="w"> </span><span class="c1">// [14]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">this</span><span class="p">.</span><span class="na">endDoFinal</span><span class="p">();</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">outLen</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">output</span><span class="p">.</span><span class="na">length</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="c1">// [15]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="n">copy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Arrays</span><span class="p">.</span><span class="na">copyOf</span><span class="p">(</span><span class="n">output</span><span class="p">,</span><span class="w"> </span><span class="n">outLen</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="na">decrypting</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">                </span><span class="n">Arrays</span><span class="p">.</span><span class="na">fill</span><span class="p">(</span><span class="n">output</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">byte</span><span class="p">)</span><span class="n">0</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="n">copy</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="n">output</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w"> 
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// [...]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><ul>
+<li>Tại [10] thực hiện ước tính output size bằng <code>this.buffered + inputLen</code>, khi debug thì ta thấy trong quá trình init <code>this.buffered = 0</code> nên giá trị <code>output = new byte[0] = []</code></li>
+<li>Tiếp theo sẽ tính toán buffer tại [11], do <code>this.buffered = 0</code> và đang trong quá trình decrypt (<code>this.decrypting = true</code>) nên sẽ trả trực tiếp giá trị <code>input</code></li>
+<li>Do đó, <code>finalBuf == input</code> nên <code>finalOffset = 16</code> (tại [12]) và <code>finalBufLen = 0</code> (tại [13])</li>
+</ul>
+<p>Tại [14], hàm <code>fillOutputBuffer()</code> được thể hiện như sau:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">private</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">fillOutputBuffer</span><span class="p">(</span><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="n">finalBuf</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">finalOffset</span><span class="p">,</span><span class="w"> </span><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="n">output</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">outOfs</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">finalBufLen</span><span class="p">,</span><span class="w"> </span><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="n">input</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">ShortBufferException</span><span class="p">,</span><span class="w"> </span><span class="n">BadPaddingException</span><span class="p">,</span><span class="w"> </span><span class="n">IllegalBlockSizeException</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">var8</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">try</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">len</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="na">finalNoPadding</span><span class="p">(</span><span class="n">finalBuf</span><span class="p">,</span><span class="w"> </span><span class="n">finalOffset</span><span class="p">,</span><span class="w"> </span><span class="n">output</span><span class="p">,</span><span class="w"> </span><span class="n">outOfs</span><span class="p">,</span><span class="w"> </span><span class="n">finalBufLen</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="na">decrypting</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="na">padding</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">            </span><span class="n">len</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="na">unpad</span><span class="p">(</span><span class="n">len</span><span class="p">,</span><span class="w"> </span><span class="n">outOfs</span><span class="p">,</span><span class="w"> </span><span class="n">output</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="n">var8</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">len</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">finally</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="c1">// [...]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">var8</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>Hàm <code>finalNoPadding()</code> khi gặp length <code>finalBufLen = 0</code> thì return ngay về <code>0</code></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kd">private</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">finalNoPadding</span><span class="p">(</span><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="n">in</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">inOfs</span><span class="p">,</span><span class="w"> </span><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="n">out</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">outOfs</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">len</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">IllegalBlockSizeException</span><span class="p">,</span><span class="w"> </span><span class="n">ShortBufferException</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">in</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">len</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="c1">// [...]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">0</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>vì khi <code>len = 0</code> thì sẽ dẫn đến kết quả của <code>this.unpad(len, outOfs, output) = 0</code> dẫn đến tại [14], giá trị của <code>outLen</code> cũng bằng <code>0</code>. Nên điều kiện tại [15], <code>if(outLen &lt; output.length) = false</code> nên kết quả hàm <code>doFinal()</code> trả về rỗng (<code>[]</code>) thay vì throw exception.</p>
+<p>Giờ thì ta hoàn toàn có thể exploit Error-based XXE đọc local file rồi :D
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/19.png"></p>
+<p>Nhanh chóng soạn report và submit lên H1, sau khi bên H1 triage thì họ báo không thể reproduce và quăng cho một lỗi rất lạ mà chưa từng gặp trước đây ngay ở bước đăng ký <code>serverId</code>
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/20.png"></p>
+<p>Sau đó, mình đã vội check lại các CVE mới nhất của ColdFusion thì thấy rằng ngày 08/04 họ đã release một bản update vá nhiều lỗ hổng, trong đó có yêu cầu client download <code>PDFgService</code> mới nhất dưới dạng file zip và replace version cũ:
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/21.png"></p>
+<p>lúc này, trong đầu nghĩ là khả năng ăn dup khá là cao rồi vì chợt nhớ ra mình đang research ở version CF2021. Đọc lại policy phần test plan, có một lưu ý quan trọng mà ban đầu mình không đọc rằng họ khuyến khích thử nghiệm trên bản ColdFusion 2025 (bài học sâu sắc là nên đọc policy trước khi làm bất kỳ điều gì 🙄)
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/22.png"></p>
+<p>Nhanh chóng setup nhanh ColdFusion 2025 và cập nhật lên bản update mới nhất (2025 Release Update 1), và port mặc định của <code>PDF Service</code> trên version này là <code>8997</code>. Đi nhanh tới <code>C:\ColdFusion2025\cfusion\jetty\webapps\PDFgServlet</code> thì mình nhận thấy rằng toàn bộ mã nguồn của PDFg Service đã bị obfuscate hoàn toàn 😧
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/23.png"></p>
+<p>lúc này bạn cũng có thể đoán được rằng họ đã aware được rủi ro của service này rồi, vì toàn bộ các tên class hay tên hàm đều đã bị làm rối trong khi version cũ thì lại không nhưng mình lại nghĩ rằng mã nguồn chắc cũng không thay đổi gì nhiều so với bản cũ.</p>
+<p>Chưa bao giờ mình thấy kỹ năng reverse quan trọng hơn lúc này, mình sử dụng JADX mò tới chổ chức năng <code>convertToPDF()</code> cũ để kiểm tra sự thay đổi, nhưng có vẻ như lỗ hổng vẫn còn ở đó chỉ là đã bị đổi tên thành <code>coldfusion.pdf.service.remote.b::m141do()</code>
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/24.png"></p>
+<p>và được gọi bởi hàm <code>coldfusion.pdf.service.remote.b::a()</code>
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/25.png"></p>
+<p>Reproduce lại bug thì khi request tạo một serverID bất kỳ, thì kết quả server trả về error giống như của triager:
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/26.png"></p>
+<p>Phân tích trên mã nguồn mới nhất, thì quá trình register đã khác so với version cũ rồi, ta buộc phải truyền vào thêm hai tham số nữa đó là <code>engine</code> và <code>publickey</code>
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/27.png"></p>
+<p>Hmm&hellip; <code>engine</code> và <code>publickey</code>??? Ah có vẻ như hạn chế mà ta đã phân tích ở version CF2021 có vẻ Adobe cũng đã nhìn ra được rồi chăng? 😛.</p>
+<p>Nghĩa là server sẽ encrypt giá trị <code>sessionId</code> khi ta register một <code>serverId</code> mới với publickey của riêng mình, sau đó sẽ dùng private key của mình để giải mã lấy <code>sessionId (hay seedVal)</code> để tạo authen token :D.  Thôi tạm hiểu là như vậy đi, vì dù sao ta cũng đâu cần biết <code>seedVal</code> để làm gì nhỉ? Mục đích hiện tại là tìm cách tạo Server ID để exploit XXE.</p>
+<p>Follow theo luồng thực thi, chương trình sẽ tiếp tục lấy hai giá trị <code>serverid</code> và <code>engine</code> đặt vào bên trong hàm <code>this.conversionManager.m93if()</code>:
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/28.png"></p>
+<p>Biến <code>f80a</code> là một HashMap, có thể hiểu nôm na là sẽ chứa list các ServerID của chúng ta và mỗi ServerID sẽ được map với một engine nhất định. Có lẽ đây là điểm khác nhất so với ColdFusion 2021, ở đây sẽ support 2 loại engine là <code>WEBKIT</code> và <code>PDFREACTOR</code>. Trong đó:</p>
+<ul>
+<li><code>WEBKIT</code> sẽ được handle bởi <code>coldfusion.pdf.service.remote.b</code> (đây cũng là sink mà ta đã phân tích ở version CF2021)</li>
+<li><code>PDFREACTOR</code> sẽ được handle bởi <code>coldfusion.pdf.service.remote.a</code></li>
+</ul>
+<p>sau đó, việc register ServerID sẽ được xử lý tại dòng này, trong đó <code>parameter2</code> là <code>serverid</code> và <code>parameter3</code> là <code>publickey</code>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kt">byte</span><span class="o">[]</span><span class="w"> </span><span class="n">a2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">this</span><span class="p">.</span><span class="na">conversionManager</span><span class="p">.</span><span class="na">a</span><span class="p">(</span><span class="n">parameter2</span><span class="p">).</span><span class="na">a</span><span class="p">(</span><span class="n">parameter2</span><span class="p">,</span><span class="w"> </span><span class="n">parameter3</span><span class="p">);</span><span class="w">
+</span></span></span></code></pre></div><p><code>this.conversionManager</code> là object của <code>coldfusion.pdf.service.h</code>, nên sẽ gọi đến <code>coldfusion.pdf.service.h::a()</code>, code như bên dưới:
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/29.png"></p>
+<p>như mình đã nói ở bên trên, chổ này chỉ đơn giản là lấy ra instance của engine sẽ dùng ra để xử lý. Giả sử, nếu ở đây sử dụng <code>PDFREACTOR</code> engine thì sẽ return về instance của class <code>coldfusion.pdf.service.remote.a</code>,  sau đó sẽ gọi tiếp <code>coldfusion.pdf.service.remote.a::a(parameter2, parameter3)</code>, nhưng class hiện tại không có hàm <code>a()</code> với các kiểu đối số như trên, nên sẽ lookup trên class cha là <code>a.b</code>
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/30.png"></p>
+<p>Tại đây, chính xác là hàm xử lý publickey:
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/31.png"></p>
+<p>hàm <code>k.m107do()</code> sẽ thực hiện decode base64 publicKey và thực hiện đọc publicKey và lưu vào biến <code>f43for</code>, hiểu nôm na là sẽ được sử dụng cho việc mã hóa ở phía sau:
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/32.png"></p>
+<p>kết quả của hàm <code>k.m109if()</code> cũng là kết quả của toàn bộ function, đoạn mã xử lý như bên dưới:
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/33.png"></p>
+<p>Tại đối số của <code>File()</code> instance, hàm <code>a()</code> trả về đường dẫn đến file <code>sessionId.json</code>
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/34.png"></p>
+<p>và mục đích chủ yếu cũng chỉ là lưu <code>seedValue</code> vào file <code>sessionId.json</code> mà thôi. Ví dụ:
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/35.png"></p>
+<p>Có vẻ hơi dài dòng chổ này, nên tóm lại là để register một <code>serverId</code> ở version 2025 thì ta cần phải cung cấp thêm hai tham số nữa là <code>engine</code> và <code>publickey</code> nữa, nhưng vì ta đã biết cách bypass authen ngay từ trước nên việc giải mã response là không cần thiết, nên giờ đơn giản chỉ việc là tạo ra một publicKey random nào đó và create một ServerID mới.
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/36.png">
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/37.png"></p>
+<p>Như vậy thì <code>WEBKIT</code> engine là sink dẫn đến lỗ hổng XXE mà ta đã phân tích ở version CF2021. Giờ ta sẽ tiếp tục phân tích engine còn lại là <code>PDFREACTOR</code>.</p>
+<p>Đối với <code>PDFREACTOR</code> được handle bởi <code>coldfusion.pdf.service.remote.a</code> và class được extends từ class <code>a.b</code>, hàm <code>a()</code> bên dưới thực hiện chức năng convert PDF. Vì sao mình biết thì đơn giản là mình dựa vào type của các tham số trong hàm như là <code>String</code> hay <code>HttpServletResponse</code> (khá giống với bản chưa obfuscate trước đó).
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/38.png"></p>
+<p>Tập trung vào hàm <code>fVar.a()</code>, nhưng khi goto thì nhảy đến interface <code>f</code>, nghĩa là sẽ gọi hàm <code>a()</code> của một class nào đó implements từ interface <code>f</code> này
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/39.png"></p>
+<p>check thử thì có 2 class implements interface <code>f</code> là class <code>a.e</code> và <code>coldfusion.pdf.service.n</code>
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/40.png"></p>
+<p>nhưng để chắc chắn, tìm nơi biến <code>fVar</code> được khởi tạo thì ta thấy có hai chổ khá rõ ràng nằm ở class <code>coldfusion.pdf.service.i</code>
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/41.png">
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/42.png"></p>
+<p>đi sâu vào hàm <code>m96if()</code>, ta thấy rõ ràng rằng đối với <code>PDFREACTOR</code> sẽ tạo một instance của <code>a.e</code>
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/43.png"></p>
+<p>và đây là nơi xử lý convert to PDF của <code>PDFREACTOR</code> engine:
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/44.png"></p>
+<p>tiếp tục đi sâu vào hàm <code>m22do()</code>:
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/45.png"></p>
+<p>có thể thấy rằng Adobe có vẻ aware về lỗ hổng XXE nên đã tắt một số tính năng đặc biệt khi xử lý dữ liệu XML, nhưng nhìn kỹ thì có vẻ nó vẫn chưa đủ để ngăn chặn lỗ hổng này 🤔</p>
+<p>Và cuối cùng thì ta vẫn có thể bypass được authentication và khai thác XXE trên version mới nhất thông qua <code>WEBKIT</code> engine:
+<img loading="lazy" src="/images/adobe-coldfusion-auth-bypass-xxe/46.png"></p>
+<h3 id="time-line">#Time-line<a hidden class="anchor" aria-hidden="true" href="#time-line">#</a></h3>
+<ul>
+<li>24/04/2025: Submit report to Adobe via Hackerone</li>
+<li>07/05/2025: The triager is unable to reproduce the issue and has requested additional information</li>
+<li>08/05/2025: Submit new detail information and exploit code</li>
+<li>16/05/2025: Adobe acknowledges vulnerability</li>
+<li>08/07/2025: CVE-2025-49538 has been published</li>
+<li>20/11/2026: Public blog post 💀</li>
+</ul>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="https://nhienit2010.github.io/tags/research/">Research</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="next" href="https://nhienit2010.github.io/posts/wp2shell-some-notes-about-preauth-rce-on-wordpress/">
+    <span class="title">Next »</span>
+    <br>
+    <span>Wp2shell - Some Notes About PreAuth RCE on WordPress</span>
+  </a>
+</nav>
+
+
+
+  </footer><div id="disqus_thread"></div>
+<script>
+(function() {
+var d = document, s = d.createElement('script');
+s.src = 'https://nhienit.disqus.com/embed.js';
+s.setAttribute('data-timestamp', +new Date());
+(d.head || d.body).appendChild(s);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>©nhienit</span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu');
+    if (menu) {
+        
+        const scrollPosition = localStorage.getItem("menu-scroll-position");
+        if (scrollPosition) {
+            menu.scrollLeft = parseInt(scrollPosition, 10);
+        }
+        
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        const html = document.querySelector("html");
+        if (html.dataset.theme === "dark") {
+            html.dataset.theme = 'light';
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            html.dataset.theme = 'dark';
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>
